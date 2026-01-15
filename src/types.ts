@@ -12,7 +12,7 @@ export interface EmailOptions {
   perform_substitutions?: boolean;
 }
 
-export interface SendEmailRequest {
+interface BaseEmailRequest {
   from: string;
   from_name?: string | null;
   subject: string;
@@ -21,8 +21,6 @@ export interface SendEmailRequest {
   bcc?: string[];
   reply_to?: string | null;
   reply_to_name?: string | null;
-  html?: string | null;
-  text?: string | null;
   amp_html?: string | null;
   campaign_id?: string;
   metadata?: Record<string, string>;
@@ -30,6 +28,12 @@ export interface SendEmailRequest {
   options?: EmailOptions;
   attachments?: Attachment[];
 }
+
+export type SendEmailRequest = BaseEmailRequest &
+  (
+    | { html: string; text?: string | null }
+    | { html?: string | null; text: string }
+  );
 
 export interface SendEmailResponse {
   request_id: string;
