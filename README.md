@@ -1,15 +1,34 @@
-# letter-node
+# Lettr Node.js SDK
 
-To install dependencies:
+Official Node.js SDK for the [Lettr](https://lettr.com) transactional email API.
 
-```bash
-bun install
-```
-
-To run:
+## Installation
 
 ```bash
-bun run index.ts
+bun install lettr
 ```
 
-This project was created using `bun init` in bun v1.3.6. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+## Usage
+
+```typescript
+import { Lettr } from "lettr";
+
+const client = new Lettr("your-api-key");
+
+const { data, error } = await client.emails.send({
+  from: "sender@example.com",
+  to: ["recipient@example.com"],
+  subject: "Welcome!",
+  html: "<p>Hello!</p>",
+});
+
+if (error) {
+  console.error(error.message);
+} else {
+  console.log(data.request_id);
+}
+```
+
+## License
+
+MIT
