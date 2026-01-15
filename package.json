@@ -1,0 +1,13 @@
+{
+  "name": "letter-node",
+  "module": "index.ts",
+  "devDependencies": {
+    "@types/bun": "latest",
+    "tsdown": "^0.20.0-beta.1",
+    "vitest": "^4.0.17"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "type": "module"
+}
