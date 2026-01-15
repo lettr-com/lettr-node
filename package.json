@@ -1,13 +1,29 @@
 {
   "name": "lettr",
-  "module": "index.ts",
+  "version": "0.0.0-alpha-20260115173114",
+  "type": "module",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "test": "bun test"
+  },
   "devDependencies": {
+    "@changesets/cli": "^2.29.8",
     "@types/bun": "latest",
     "tsdown": "^0.20.0-beta.1",
     "vitest": "^4.0.17"
   },
   "peerDependencies": {
     "typescript": "^5"
-  },
-  "type": "module"
+  }
 }
