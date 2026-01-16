@@ -1,6 +1,6 @@
 import { Emails } from "./emails";
 
-const BASE_URL = "https://app.uselettr.com/api";
+const BASE_URL = "https://app.lettr.com/api";
 
 export class Lettr {
   public readonly emails: Emails;

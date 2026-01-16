@@ -144,7 +144,7 @@ describe("Lettr", () => {
       await client.emails.send(validRequest);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "https://app.uselettr.com/api/emails",
+        "https://app.lettr.com/api/emails",
         {
           method: "POST",
           headers: {

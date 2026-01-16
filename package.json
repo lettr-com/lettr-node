@@ -1,6 +1,6 @@
 {
   "name": "lettr",
-  "version": "0.0.0-alpha-20260115173114",
+  "version": "0.0.0-alpha-20260116104902",
   "type": "module",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
