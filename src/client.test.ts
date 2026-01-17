@@ -24,7 +24,6 @@ describe("Lettr", () => {
         ok: true,
         status: 200,
         json: async () => ({
-          success: true,
           message: "Email queued for delivery.",
           data: {
             request_id: "abc123",
@@ -41,6 +40,7 @@ describe("Lettr", () => {
         request_id: "abc123",
         accepted: 1,
         rejected: 0,
+        message: "Email queued for delivery.",
       });
       expect(result.error).toBeNull();
     });
@@ -50,7 +50,6 @@ describe("Lettr", () => {
         ok: false,
         status: 422,
         json: async () => ({
-          success: false,
           message: "Validation failed.",
           errors: {
             from: ["The sender email address is required."],
@@ -78,7 +77,6 @@ describe("Lettr", () => {
         ok: false,
         status: 400,
         json: async () => ({
-          success: false,
           message: "Failed to send email.",
           errors: ["Invalid sender domain"],
         }),
@@ -100,7 +98,6 @@ describe("Lettr", () => {
         ok: false,
         status: 502,
         json: async () => ({
-          success: false,
           message: "Email transmission failed.",
           errors: ["Upstream provider error"],
         }),
@@ -135,7 +132,7 @@ describe("Lettr", () => {
         ok: true,
         status: 200,
         json: async () => ({
-          success: true,
+          message: "Email queued for delivery.",
           data: { request_id: "abc123", accepted: 1, rejected: 0 },
         }),
       });
@@ -161,7 +158,7 @@ describe("Lettr", () => {
         ok: true,
         status: 200,
         json: async () => ({
-          success: true,
+          message: "Email queued for delivery.",
           data: { request_id: "xyz789", accepted: 3, rejected: 1 },
         }),
       });
@@ -201,6 +198,7 @@ describe("Lettr", () => {
         request_id: "xyz789",
         accepted: 3,
         rejected: 1,
+        message: "Email queued for delivery.",
       });
       expect(result.error).toBeNull();
     });

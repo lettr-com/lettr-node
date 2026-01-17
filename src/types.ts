@@ -39,6 +39,7 @@ export interface SendEmailResponse {
   request_id: string;
   accepted: number;
   rejected: number;
+  message: string;
 }
 
 export type LettrError =

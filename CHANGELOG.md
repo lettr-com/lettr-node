@@ -1,5 +1,11 @@
 # lettr
 
+## 0.0.0-alfa-20260117185227
+
+### Patch Changes
+
+- Success: true is missing in the request. Adaptin to it.
+
 ## 0.0.0-alpha-20260116104902
 
 ### Patch Changes

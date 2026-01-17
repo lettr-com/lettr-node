@@ -1,7 +1,6 @@
 import type { SendEmailRequest, SendEmailResult, LettrError } from "./types";
 
 interface ApiSuccessResponse {
-  success: true;
   message: string;
   data: {
     request_id: string;
@@ -11,13 +10,11 @@ interface ApiSuccessResponse {
 }
 
 interface ApiValidationErrorResponse {
-  success: false;
   message: string;
   errors: Record<string, string[]>;
 }
 
 interface ApiErrorResponse {
-  success: false;
   message: string;
   errors: string[];
 }
@@ -54,12 +51,14 @@ export class Emails {
 
     const body = (await response.json()) as ApiResponse;
 
-    if (response.ok && body.success) {
+    if (response.ok) {
+      const successBody = body as ApiSuccessResponse;
       return {
         data: {
-          request_id: body.data.request_id,
-          accepted: body.data.accepted,
-          rejected: body.data.rejected,
+          request_id: successBody.data.request_id,
+          accepted: successBody.data.accepted,
+          rejected: successBody.data.rejected,
+          message: successBody.message,
         },
         error: null,
       };
