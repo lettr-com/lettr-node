@@ -54,8 +54,8 @@ describe.skipIf(!API_KEY)("e2e", () => {
       expect(data!.total_count).toBeNumber();
       expect(data!.pagination).toBeDefined();
       expect(data!.pagination.per_page).toBeNumber();
-      if (data!.results.length > 0 && data!.results[0].request_id) {
-        existingRequestId = data!.results[0].request_id;
+      if (data!.results.length > 0 && data!.results[0]?.request_id) {
+        existingRequestId = data!.results[0]!.request_id;
       }
     });
 
@@ -80,7 +80,7 @@ describe.skipIf(!API_KEY)("e2e", () => {
       expect(data).not.toBeNull();
       expect(Array.isArray(data!.domains)).toBe(true);
       if (data!.domains.length > 0) {
-        firstDomain = data!.domains[0].domain;
+        firstDomain = data!.domains[0]!.domain;
       }
     });
 
@@ -171,7 +171,7 @@ describe.skipIf(!API_KEY)("e2e", () => {
       expect(data).not.toBeNull();
       expect(Array.isArray(data!.webhooks)).toBe(true);
       if (data!.webhooks.length > 0) {
-        firstWebhookId = data!.webhooks[0].id;
+        firstWebhookId = data!.webhooks[0]!.id;
       }
     });
 
