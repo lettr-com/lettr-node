@@ -15,7 +15,8 @@
   ],
   "scripts": {
     "build": "tsdown",
-    "test": "bun test"
+    "test": "bun test",
+    "test:e2e": "bun test ./src/e2e.ts"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
