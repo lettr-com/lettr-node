@@ -54,6 +54,7 @@ describe("Templates", () => {
         folder_id: 10,
         active_version: 1,
         versions_count: 1,
+        html: "<p>Hello {{FIRST_NAME}}</p>",
         merge_tags: [{ key: "FIRST_NAME", required: true }],
         created_at: "2026-01-28T12:00:00+00:00",
         updated_at: "2026-01-28T12:00:00+00:00",
@@ -109,6 +110,7 @@ describe("Templates", () => {
         folder_id: 10,
         active_version: 2,
         versions_count: 3,
+        html: "<p>Welcome!</p>",
         created_at: "2025-01-15T10:00:00+00:00",
         updated_at: "2025-01-20T14:30:00+00:00",
       };
@@ -161,6 +163,7 @@ describe("Templates", () => {
         folder_id: 10,
         active_version: 2,
         versions_count: 2,
+        html: "<p>Hello {{NAME}}</p>",
         merge_tags: [{ key: "NAME", required: true }],
         created_at: "2026-01-15T10:00:00+00:00",
         updated_at: "2026-01-28T14:30:00+00:00",

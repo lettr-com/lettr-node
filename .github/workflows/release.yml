@@ -21,7 +21,7 @@ jobs:
         run: bun install
 
       - name: Build
-        run: bun run build
+        run: bun run --filter '*' build
 
       - name: Create Release PR or Publish
         uses: changesets/action@v1

@@ -180,6 +180,7 @@ export interface Template {
 export interface TemplateDetail extends Template {
   active_version: number;
   versions_count: number;
+  html: string | null;
 }
 
 export interface CreateTemplateRequest {
