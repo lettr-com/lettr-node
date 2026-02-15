@@ -1,85 +1,47 @@
-import type { SendEmailRequest, SendEmailResult, LettrError } from "./types";
-
-interface ApiSuccessResponse {
-  message: string;
-  data: {
-    request_id: string;
-    accepted: number;
-    rejected: number;
-  };
-}
-
-interface ApiValidationErrorResponse {
-  message: string;
-  errors: Record<string, string[]>;
-}
-
-interface ApiErrorResponse {
-  message: string;
-  errors: string[];
-}
-
-type ApiResponse =
-  | ApiSuccessResponse
-  | ApiValidationErrorResponse
-  | ApiErrorResponse;
+import type { HttpClient } from "./http";
+import type {
+  SendEmailRequest,
+  SendEmailResponse,
+  ListEmailsParams,
+  ListEmailsResponse,
+  GetEmailResponse,
+  Result,
+} from "./types";
 
 export class Emails {
-  constructor(
-    private baseUrl: string,
-    private apiKey: string
-  ) {}
+  constructor(private http: HttpClient) {}
 
-  async send(request: SendEmailRequest): Promise<SendEmailResult> {
-    let response: Response;
+  async send(request: SendEmailRequest): Promise<Result<SendEmailResponse>> {
+    const result = await this.http.request<{
+      message: string;
+      data: { request_id: string; accepted: number; rejected: number };
+    }>("POST", "/emails", { body: request, unwrap: false });
 
-    try {
-      response = await fetch(`${this.baseUrl}/emails`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.apiKey}`,
-        },
-        body: JSON.stringify(request),
-      });
-    } catch {
-      return {
-        data: null,
-        error: { type: "network", message: "Failed to connect to Lettr API" },
-      };
-    }
+    if (result.error) return result;
 
-    const body = (await response.json()) as ApiResponse;
-
-    if (response.ok) {
-      const successBody = body as ApiSuccessResponse;
-      return {
-        data: {
-          request_id: successBody.data.request_id,
-          accepted: successBody.data.accepted,
-          rejected: successBody.data.rejected,
-          message: successBody.message,
-        },
-        error: null,
-      };
-    }
-
-    if (response.status === 422) {
-      const errorBody = body as ApiValidationErrorResponse;
-      const error: LettrError = {
-        type: "validation",
-        message: errorBody.message ?? "Validation failed",
-        errors: errorBody.errors ?? {},
-      };
-      return { data: null, error };
-    }
-
-    const errorBody = body as ApiErrorResponse;
-    const error: LettrError = {
-      type: "api",
-      message: errorBody.message ?? "Request failed",
-      errors: errorBody.errors ?? [],
+    return {
+      data: {
+        request_id: result.data.data.request_id,
+        accepted: result.data.data.accepted,
+        rejected: result.data.data.rejected,
+        message: result.data.message,
+      },
+      error: null,
     };
-    return { data: null, error };
+  }
+
+  async list(
+    params?: ListEmailsParams
+  ): Promise<Result<ListEmailsResponse>> {
+    return this.http.request<ListEmailsResponse>("GET", "/emails", {
+      query: params as Record<string, string | number | undefined>,
+    });
+  }
+
+  async get(requestId: string): Promise<Result<GetEmailResponse>> {
+    return this.http.request<GetEmailResponse>(
+      "GET",
+      `/emails/${encodeURIComponent(requestId)}`
+    );
   }
 }
