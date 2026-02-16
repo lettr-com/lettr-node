@@ -1,5 +1,9 @@
 # lettr
 
+## 0.0.0-20260216141848
+
+- Add all missing endpoints.
+
 ## 0.0.0-alfa-20260117185227
 
 ### Patch Changes

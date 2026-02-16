@@ -1,6 +1,6 @@
 {
   "name": "lettr-kit",
-  "version": "0.0.1",
+  "version": "0.0.0-20260216141848",
   "type": "module",
   "bin": {
     "lettr-kit": "./dist/index.mjs"
