@@ -5,6 +5,11 @@
   "bin": {
     "lettr-kit": "./dist/index.mjs"
   },
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs"
+    }
+  },
   "files": [
     "dist"
   ],
