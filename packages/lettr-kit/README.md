@@ -1,17 +1,17 @@
-# letter-kit
+# lettr-kit
 
 CLI tool for managing [Lettr](https://lettr.com) email templates locally.
 
 ## Installation
 
 ```bash
-npm install -g letter-kit
+npm install -g lettr-kit
 ```
 
 Or run directly with npx:
 
 ```bash
-npx letter-kit
+npx lettr-kit
 ```
 
 ## Setup
@@ -19,7 +19,7 @@ npx letter-kit
 Initialize a config file in your project:
 
 ```bash
-letter-kit init
+lettr-kit init
 ```
 
 This creates a `lettr.json` file:
@@ -44,26 +44,26 @@ The API key is resolved in this order:
 
 ## Commands
 
-### `letter-kit init`
+### `lettr-kit init`
 
 Interactively creates a `lettr.json` config file in the current directory.
 
-### `letter-kit list`
+### `lettr-kit list`
 
 Lists all templates from the Lettr API.
 
 ```bash
-letter-kit list
-letter-kit list --api-key lttr_abc123
+lettr-kit list
+lettr-kit list --api-key lttr_abc123
 ```
 
-### `letter-kit pull`
+### `lettr-kit pull`
 
 Pulls all templates and saves them as `{slug}.html` files in the configured output directory.
 
 ```bash
-letter-kit pull
-letter-kit pull --api-key lttr_abc123
+lettr-kit pull
+lettr-kit pull --api-key lttr_abc123
 ```
 
 ## License

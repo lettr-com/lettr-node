@@ -5,7 +5,7 @@ import { pullCommand } from "./commands/pull.ts";
 
 const main = defineCommand({
   meta: {
-    name: "letter-kit",
+    name: "lettr-kit",
     description: "CLI tool for managing Lettr email templates",
   },
   subCommands: {
