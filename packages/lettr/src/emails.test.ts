@@ -152,6 +152,55 @@ describe("Emails", () => {
       );
     });
 
+    it("sends template email without subject", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          message: "Email queued for delivery.",
+          data: { request_id: "tmpl123", accepted: 1, rejected: 0 },
+        }),
+      });
+
+      const templateRequest: SendEmailRequest = {
+        from: "sender@example.com",
+        to: ["recipient@example.com"],
+        template_slug: "welcome",
+      };
+
+      const client = new Lettr("test-api-key");
+      await client.emails.send(templateRequest);
+
+      const body = JSON.parse(mockFetch.mock.calls[0]![1]!.body as string);
+      expect(body).not.toHaveProperty("subject");
+      expect(body.template_slug).toBe("welcome");
+    });
+
+    it("sends template email with subject override", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          message: "Email queued for delivery.",
+          data: { request_id: "tmpl456", accepted: 1, rejected: 0 },
+        }),
+      });
+
+      const templateRequest: SendEmailRequest = {
+        from: "sender@example.com",
+        to: ["recipient@example.com"],
+        template_slug: "welcome",
+        subject: "Custom Subject",
+      };
+
+      const client = new Lettr("test-api-key");
+      await client.emails.send(templateRequest);
+
+      const body = JSON.parse(mockFetch.mock.calls[0]![1]!.body as string);
+      expect(body.template_slug).toBe("welcome");
+      expect(body.subject).toBe("Custom Subject");
+    });
+
     it("handles request with all optional fields", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,

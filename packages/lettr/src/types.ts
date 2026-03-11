@@ -28,7 +28,6 @@ export interface EmailOptions {
 interface BaseEmailRequest {
   from: string;
   from_name?: string | null;
-  subject: string;
   to: string[];
   cc?: string[];
   bcc?: string[];
@@ -37,7 +36,6 @@ interface BaseEmailRequest {
   amp_html?: string | null;
   campaign_id?: string;
   project_id?: number;
-  template_slug?: string;
   template_version?: number;
   tag?: string;
   metadata?: Record<string, string>;
@@ -48,9 +46,9 @@ interface BaseEmailRequest {
 
 export type SendEmailRequest = BaseEmailRequest &
   (
-    | { html: string; text?: string | null }
-    | { html?: string | null; text: string }
-    | { template_slug: string }
+    | { subject: string; html: string; text?: string | null }
+    | { subject: string; html?: string | null; text: string }
+    | { template_slug: string; subject?: string }
   );
 
 export interface SendEmailResponse {

@@ -36,11 +36,23 @@ const { data, error } = await client.emails.send({
 
 ### Send with a Template
 
+When using a template, `subject` is optional — the template's subject is used by default. You can pass `subject` to override it.
+
 ```typescript
+// Subject defined by the template
 const { data, error } = await client.emails.send({
   from: "sender@example.com",
   to: ["recipient@example.com"],
   template_slug: "welcome",
+  substitution_data: { name: "John" },
+});
+
+// Override the template's subject
+const { data, error } = await client.emails.send({
+  from: "sender@example.com",
+  to: ["recipient@example.com"],
+  template_slug: "welcome",
+  subject: "Custom Subject",
   substitution_data: { name: "John" },
 });
 ```
