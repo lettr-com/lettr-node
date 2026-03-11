@@ -7,12 +7,12 @@ export function table(headers: string[], rows: string[][]): string {
   const widths = new Array<number>(cols);
 
   for (let i = 0; i < cols; i++) {
-    widths[i] = headers[i].length;
+    widths[i] = headers[i]!.length;
   }
   for (const row of rows) {
     for (let i = 0; i < cols; i++) {
       const len = stripAnsi(row[i] ?? "").length;
-      if (len > widths[i]) widths[i] = len;
+      if (len > widths[i]!) widths[i] = len;
     }
   }
 
@@ -26,17 +26,17 @@ export function table(headers: string[], rows: string[][]): string {
 
   // header
   const headerLine = headers
-    .map((h, i) => pc.bold(pad(h, widths[i])))
+    .map((h, i) => pc.bold(pad(h, widths[i]!)))
     .join("  ");
   lines.push(headerLine);
 
   // separator
-  const sepLine = widths.map((w) => sep.repeat(w)).join("──");
+  const sepLine = widths.map((w) => sep.repeat(w!)).join("──");
   lines.push(pc.dim(sepLine));
 
   // rows
   for (const row of rows) {
-    const rowLine = row.map((cell, i) => pad(cell, widths[i])).join("  ");
+    const rowLine = row.map((cell, i) => pad(cell, widths[i]!)).join("  ");
     lines.push(rowLine);
   }
 

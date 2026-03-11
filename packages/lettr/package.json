@@ -15,6 +15,7 @@
   ],
   "scripts": {
     "build": "tsdown",
+    "typecheck": "tsc --noEmit",
     "test": "bun test",
     "test:e2e": "bun test ./src/e2e.ts"
   },

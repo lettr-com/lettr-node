@@ -15,6 +15,7 @@
   ],
   "scripts": {
     "build": "tsdown",
+    "typecheck": "tsc --noEmit",
     "test": "echo 'no tests yet'"
   },
   "dependencies": {
