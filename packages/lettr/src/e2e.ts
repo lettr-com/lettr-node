@@ -44,28 +44,78 @@ describe.skipIf(!API_KEY)("e2e", () => {
       expect(data!.accepted).toBeNumber();
       expect(data!.rejected).toBeNumber();
       expect(data!.message).toBeString();
+      existingRequestId = data!.request_id;
+    });
+
+    test("listSent()", async () => {
+      const { data, error } = await client.emails.listSent({ per_page: 5 });
+      expect(error).toBeNull();
+      expect(data).not.toBeNull();
+      expect(data!.events).toBeDefined();
+      expect(Array.isArray(data!.events.data)).toBe(true);
+      expect(data!.events.total_count).toBeNumber();
+      expect(data!.events.pagination).toBeDefined();
     });
 
     test("list()", async () => {
       const { data, error } = await client.emails.list({ per_page: 5 });
       expect(error).toBeNull();
       expect(data).not.toBeNull();
-      expect(Array.isArray(data!.results)).toBe(true);
-      expect(data!.total_count).toBeNumber();
-      expect(data!.pagination).toBeDefined();
-      expect(data!.pagination.per_page).toBeNumber();
-      if (data!.results.length > 0 && data!.results[0]?.request_id) {
-        existingRequestId = data!.results[0]!.request_id;
-      }
+      expect(data!.events).toBeDefined();
+      expect(Array.isArray(data!.events.data)).toBe(true);
+      expect(data!.events.total_count).toBeNumber();
+      expect(data!.events.pagination).toBeDefined();
     });
 
     test("get(requestId)", async () => {
-      if (!existingRequestId) return; // skip if no emails with request_id exist
+      if (!existingRequestId) return;
       const { data, error } = await client.emails.get(existingRequestId);
       expect(error).toBeNull();
       expect(data).not.toBeNull();
-      expect(Array.isArray(data!.results)).toBe(true);
-      expect(data!.total_count).toBeNumber();
+      expect(data!.transmission_id).toBeString();
+      expect(data!.state).toBeString();
+      expect(data!.from).toBeString();
+      expect(data!.subject).toBeString();
+      expect(Array.isArray(data!.recipients)).toBe(true);
+      expect(data!.num_recipients).toBeNumber();
+      expect(Array.isArray(data!.events)).toBe(true);
+    });
+  });
+
+  // ─── Scheduled Emails ──────────────────────────────────────────
+
+  describe("scheduled emails", () => {
+    let scheduledTransmissionId: string;
+
+    test("schedule()", async () => {
+      const scheduledAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+      const { data, error } = await client.emails.schedule({
+        from: "test@testmail.lettr.cz",
+        subject: `E2E scheduled email ${Date.now()}`,
+        to: ["test@testmail.lettr.cz"],
+        html: "<h1>Scheduled E2E Test</h1>",
+        scheduled_at: scheduledAt,
+      });
+      expect(error).toBeNull();
+      expect(data).not.toBeNull();
+      expect(data!.request_id).toBeString();
+      scheduledTransmissionId = data!.request_id;
+    });
+
+    test("getScheduled()", async () => {
+      if (!scheduledTransmissionId) return;
+      const { data, error } = await client.emails.getScheduled(scheduledTransmissionId);
+      expect(error).toBeNull();
+      expect(data).not.toBeNull();
+      expect(data!.transmission_id).toBeString();
+      expect(data!.state).toBeString();
+      expect(data!.from).toBeString();
+    });
+
+    afterAll(async () => {
+      if (scheduledTransmissionId) {
+        await client.emails.cancelScheduled(scheduledTransmissionId);
+      }
     });
   });
 
@@ -160,29 +210,56 @@ describe.skipIf(!API_KEY)("e2e", () => {
     });
   });
 
-  // ─── Webhooks ───────────────────────────────────────────────────
+  // ─── Webhooks (lifecycle) ──────────────────────────────────────
 
-  describe("webhooks", () => {
-    let firstWebhookId: string;
+  describe("webhooks lifecycle", () => {
+    let webhookId: string;
+
+    test("create()", async () => {
+      const { data, error } = await client.webhooks.create({
+        name: `E2E Webhook ${Date.now()}`,
+        url: "https://example.com/e2e-webhook",
+        auth_type: "none",
+        events_mode: "all",
+      });
+      expect(error).toBeNull();
+      expect(data).not.toBeNull();
+      expect(data!.id).toBeString();
+      expect(data!.name).toBeString();
+      webhookId = data!.id;
+    });
 
     test("list()", async () => {
       const { data, error } = await client.webhooks.list();
       expect(error).toBeNull();
       expect(data).not.toBeNull();
       expect(Array.isArray(data!.webhooks)).toBe(true);
-      if (data!.webhooks.length > 0) {
-        firstWebhookId = data!.webhooks[0]!.id;
-      }
     });
 
     test("get(id)", async () => {
-      if (!firstWebhookId) return; // skip if no webhooks exist
-      const { data, error } = await client.webhooks.get(firstWebhookId);
+      if (!webhookId) return;
+      const { data, error } = await client.webhooks.get(webhookId);
       expect(error).toBeNull();
       expect(data).not.toBeNull();
-      expect(data!.id).toBe(firstWebhookId);
+      expect(data!.id).toBe(webhookId);
       expect(data!.name).toBeString();
       expect(data!.url).toBeString();
+    });
+
+    test("update(id)", async () => {
+      if (!webhookId) return;
+      const { data, error } = await client.webhooks.update(webhookId, {
+        name: "Updated E2E Webhook",
+      });
+      expect(error).toBeNull();
+      expect(data).not.toBeNull();
+      expect(data!.name).toBe("Updated E2E Webhook");
+    });
+
+    afterAll(async () => {
+      if (webhookId) {
+        await client.webhooks.delete(webhookId);
+      }
     });
   });
 

@@ -273,4 +273,55 @@ describe("Templates", () => {
       expect(calledUrl).toContain("project_id=5");
     });
   });
+
+  describe("getHtml", () => {
+    it("returns template HTML and merge tags", async () => {
+      const responseData = {
+        html: "<h1>Hello {{name}}</h1><p>Welcome!</p>",
+        merge_tags: [
+          { key: "name", name: "name", required: true },
+          { key: "company", name: "company", required: false },
+        ],
+        subject: "Welcome Email",
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ data: responseData }),
+      });
+
+      const client = new Lettr("test-api-key");
+      const result = await client.templates.getHtml({ project_id: 5, slug: "welcome-email" });
+
+      expect(result.data).toEqual(responseData);
+      expect(result.error).toBeNull();
+
+      const calledUrl = mockFetch.mock.calls[0]![0] as string;
+      expect(calledUrl).toContain("/templates/html");
+      expect(calledUrl).toContain("project_id=5");
+      expect(calledUrl).toContain("slug=welcome-email");
+    });
+
+    it("returns error on 404", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: async () => ({
+          message: "Template not found.",
+          error_code: "not_found",
+        }),
+      });
+
+      const client = new Lettr("test-api-key");
+      const result = await client.templates.getHtml({ project_id: 5, slug: "nonexistent" });
+
+      expect(result.data).toBeNull();
+      expect(result.error).toEqual({
+        type: "api",
+        message: "Template not found.",
+        error_code: "not_found",
+      });
+    });
+  });
 });

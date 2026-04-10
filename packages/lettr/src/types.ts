@@ -34,11 +34,11 @@ interface BaseEmailRequest {
   reply_to?: string | null;
   reply_to_name?: string | null;
   amp_html?: string | null;
-  campaign_id?: string;
   project_id?: number;
   template_version?: number;
   tag?: string;
   metadata?: Record<string, string>;
+  headers?: Record<string, string>;
   substitution_data?: Record<string, string>;
   options?: EmailOptions;
   attachments?: Attachment[];
@@ -58,19 +58,21 @@ export interface SendEmailResponse {
   message: string;
 }
 
-/** @deprecated Use `Result<SendEmailResponse>` instead */
-export type SendEmailResult = Result<SendEmailResponse>;
+export type ScheduleEmailRequest = SendEmailRequest & {
+  scheduled_at: string;
+};
 
-export interface ListEmailsParams {
-  per_page?: number;
-  cursor?: string;
-  recipients?: string;
-  from?: string;
-  to?: string;
+export type ScheduledTransmission = GetEmailResponse;
+
+export interface CancelScheduledResponse {
+  message: string;
 }
 
-export interface EmailEvent {
+// ---------- Sent Emails (GET /emails) ----------
+
+export interface SentEmail {
   event_id: string;
+  type: string;
   timestamp: string;
   request_id: string | null;
   message_id: string | null;
@@ -88,28 +90,283 @@ export interface EmailEvent {
   transactional: boolean | null;
   msg_size: number | null;
   injection_time: string | null;
-  rcpt_meta: Record<string, unknown>;
+  rcpt_meta: Record<string, unknown> | null;
 }
 
-export interface EmailEventDetail extends EmailEvent {
+export interface ListSentEmailsParams {
+  per_page?: number;
+  cursor?: string;
+  recipients?: string;
+  from?: string;
+  to?: string;
+}
+
+export interface ListSentEmailsResponse {
+  events: {
+    data: SentEmail[];
+    total_count: number;
+    from: string;
+    to: string;
+    pagination: {
+      next_cursor: string | null;
+      per_page: number;
+    };
+  };
+}
+
+// ---------- Email Events (GET /emails/events) ----------
+
+export interface UserAgentParsed {
+  agent_family: string | null;
+  device_brand: string | null;
+  device_family: string | null;
+  os_family: string | null;
+  os_version: string | null;
+  is_mobile: boolean | null;
+  is_proxy: boolean | null;
+  is_prefetched: boolean | null;
+}
+
+export interface GeoIp {
+  country: string | null;
+  region: string | null;
+  city: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  zip: string | null;
+  postal_code: string | null;
+}
+
+export interface BaseEmailEvent {
+  event_id: string;
   type: string;
+  timestamp: string;
+  request_id: string | null;
+  message_id: string | null;
+  subject: string | null;
+  friendly_from: string | null;
+  sending_domain: string | null;
+  rcpt_to: string | null;
+  raw_rcpt_to: string | null;
+  recipient_domain: string | null;
+  mailbox_provider: string | null;
+  mailbox_provider_region: string | null;
+  sending_ip: string | null;
+  click_tracking: boolean | null;
+  open_tracking: boolean | null;
+  transactional: boolean | null;
+  msg_size: number | null;
+  injection_time: string | null;
+  rcpt_meta: unknown[] | null;
+  campaign_id: string | null;
+  template_id: string | null;
+  template_version: string | null;
+  ip_pool: string | null;
+  msg_from: string | null;
+  rcpt_type: string | null;
+  rcpt_tags: string[] | null;
+  amp_enabled: boolean | null;
+  delv_method: string | null;
+  recv_method: string | null;
+  routing_domain: string | null;
+  scheduled_time: string | null;
+  ab_test_id: string | null;
+  ab_test_version: string | null;
+}
+
+export interface InjectionEvent extends BaseEmailEvent {
+  type: "injection";
+  initial_pixel: boolean | null;
+}
+
+export interface DeliveryEvent extends BaseEmailEvent {
+  type: "delivery";
+  queue_time: number | null;
+  outbound_tls: string | null;
+}
+
+export interface BounceEvent extends BaseEmailEvent {
+  type: "bounce";
+  bounce_class: number | null;
+  error_code: string | null;
+  reason: string | null;
+  raw_reason: string | null;
+  num_retries: number | null;
+  device_token: string | null;
+}
+
+export interface DelayEvent extends BaseEmailEvent {
+  type: "delay";
+  reason: string | null;
+  raw_reason: string | null;
+  error_code: string | null;
+  bounce_class: number | null;
+  num_retries: number | null;
+  queue_time: number | null;
+  outbound_tls: string | null;
+}
+
+export interface OutOfBandEvent extends BaseEmailEvent {
+  type: "out_of_band";
+  bounce_class: number | null;
+  error_code: string | null;
+  reason: string | null;
+  raw_reason: string | null;
+  device_token: string | null;
+}
+
+export interface SpamComplaintEvent extends BaseEmailEvent {
+  type: "spam_complaint";
+  fbtype: string | null;
+  report_by: string | null;
+  report_to: string | null;
+}
+
+export interface PolicyRejectionEvent extends BaseEmailEvent {
+  type: "policy_rejection";
+  remote_addr: string | null;
+  reason: string | null;
+  raw_reason: string | null;
+  error_code: string | null;
+  bounce_class: number | null;
+}
+
+export interface ClickEvent extends BaseEmailEvent {
+  type: "click";
+  target_link_url: string | null;
+  target_link_name: string | null;
+  user_agent: string | null;
+  user_agent_parsed: UserAgentParsed | null;
+  geo_ip: GeoIp | null;
+  ip_address: string | null;
+}
+
+export interface OpenEvent extends BaseEmailEvent {
+  type: "open";
+  user_agent: string | null;
+  user_agent_parsed: UserAgentParsed | null;
+  geo_ip: GeoIp | null;
+  ip_address: string | null;
+  initial_pixel: boolean | null;
+}
+
+export interface InitialOpenEvent extends BaseEmailEvent {
+  type: "initial_open";
+  user_agent: string | null;
+  user_agent_parsed: UserAgentParsed | null;
+  geo_ip: GeoIp | null;
+  ip_address: string | null;
+  initial_pixel: boolean | null;
+}
+
+export interface AmpClickEvent extends BaseEmailEvent {
+  type: "amp_click";
+  target_link_url: string | null;
+  target_link_name: string | null;
+  user_agent: string | null;
+  user_agent_parsed: UserAgentParsed | null;
+  geo_ip: GeoIp | null;
+  ip_address: string | null;
+}
+
+export interface AmpOpenEvent extends BaseEmailEvent {
+  type: "amp_open";
+  user_agent: string | null;
+  user_agent_parsed: UserAgentParsed | null;
+  geo_ip: GeoIp | null;
+  ip_address: string | null;
+  initial_pixel: boolean | null;
+}
+
+export interface AmpInitialOpenEvent extends BaseEmailEvent {
+  type: "amp_initial_open";
+  user_agent: string | null;
+  user_agent_parsed: UserAgentParsed | null;
+  geo_ip: GeoIp | null;
+  ip_address: string | null;
+  initial_pixel: boolean | null;
+}
+
+export interface GenerationFailureEvent extends BaseEmailEvent {
+  type: "generation_failure";
   reason: string | null;
   raw_reason: string | null;
   error_code: string | null;
 }
 
+export interface GenerationRejectionEvent extends BaseEmailEvent {
+  type: "generation_rejection";
+  reason: string | null;
+  raw_reason: string | null;
+  error_code: string | null;
+}
+
+export interface ListUnsubscribeEvent extends BaseEmailEvent {
+  type: "list_unsubscribe";
+}
+
+export interface LinkUnsubscribeEvent extends BaseEmailEvent {
+  type: "link_unsubscribe";
+}
+
+export type EmailEvent =
+  | InjectionEvent
+  | DeliveryEvent
+  | BounceEvent
+  | DelayEvent
+  | OutOfBandEvent
+  | SpamComplaintEvent
+  | PolicyRejectionEvent
+  | ClickEvent
+  | OpenEvent
+  | InitialOpenEvent
+  | AmpClickEvent
+  | AmpOpenEvent
+  | AmpInitialOpenEvent
+  | GenerationFailureEvent
+  | GenerationRejectionEvent
+  | ListUnsubscribeEvent
+  | LinkUnsubscribeEvent;
+
+export interface ListEmailsParams {
+  per_page?: number;
+  cursor?: string;
+  recipients?: string;
+  from?: string;
+  to?: string;
+  events?: string;
+  transmissions?: string;
+  bounce_classes?: string;
+}
+
 export interface ListEmailsResponse {
-  results: EmailEvent[];
-  total_count: number;
-  pagination: {
-    next_cursor: string | null;
-    per_page: number;
+  events: {
+    data: EmailEvent[];
+    total_count: number;
+    from: string;
+    to: string;
+    pagination: {
+      next_cursor: string | null;
+      per_page: number;
+    };
   };
 }
 
+export interface GetEmailParams {
+  from?: string;
+  to?: string;
+}
+
 export interface GetEmailResponse {
-  results: EmailEventDetail[];
-  total_count: number;
+  transmission_id: string;
+  state: string;
+  scheduled_at: string | null;
+  from: string;
+  from_name: string | null;
+  subject: string;
+  recipients: string[];
+  num_recipients: number;
+  events: EmailEvent[];
 }
 
 // ---------- Domains ----------
@@ -169,8 +426,8 @@ export interface Template {
   id: number;
   name: string;
   slug: string;
-  project_id: number | null;
-  folder_id: number | null;
+  project_id: number;
+  folder_id: number;
   created_at: string;
   updated_at: string;
 }
@@ -179,6 +436,7 @@ export interface TemplateDetail extends Template {
   active_version: number;
   versions_count: number;
   html: string | null;
+  json: string | null;
 }
 
 export interface CreateTemplateRequest {
@@ -219,12 +477,27 @@ export interface ListTemplatesResponse {
   };
 }
 
-export interface CreateTemplateResponse extends TemplateDetail {
+export interface CreateTemplateResponse {
+  id: number;
+  name: string;
+  slug: string;
+  project_id: number;
+  folder_id: number;
+  active_version: number;
   merge_tags: MergeTag[];
+  created_at: string;
 }
 
-export interface UpdateTemplateResponse extends TemplateDetail {
+export interface UpdateTemplateResponse {
+  id: number;
+  name: string;
+  slug: string;
+  project_id: number;
+  folder_id: number;
+  active_version: number;
   merge_tags: MergeTag[];
+  created_at: string;
+  updated_at: string;
 }
 
 export interface GetMergeTagsResponse {
@@ -236,6 +509,17 @@ export interface GetMergeTagsResponse {
 export interface GetMergeTagsParams {
   project_id?: number;
   version?: number;
+}
+
+export interface GetTemplateHtmlParams {
+  project_id: number;
+  slug: string;
+}
+
+export interface GetTemplateHtmlResponse {
+  html: string;
+  merge_tags: { key: string; name: string; required: boolean }[];
+  subject: string | null;
 }
 
 // ---------- Webhooks ----------
@@ -255,6 +539,32 @@ export interface Webhook {
 
 export interface ListWebhooksResponse {
   webhooks: Webhook[];
+}
+
+export interface CreateWebhookRequest {
+  name: string;
+  url: string;
+  auth_type: "none" | "basic" | "oauth2";
+  auth_username?: string;
+  auth_password?: string;
+  oauth_client_id?: string;
+  oauth_client_secret?: string;
+  oauth_token_url?: string;
+  events_mode: "all" | "selected";
+  events?: string[];
+}
+
+export interface UpdateWebhookRequest {
+  name?: string;
+  target?: string;
+  auth_type?: "none" | "basic" | "oauth2";
+  auth_username?: string;
+  auth_password?: string;
+  oauth_token_url?: string;
+  oauth_client_id?: string;
+  oauth_client_secret?: string;
+  events?: string[];
+  active?: boolean;
 }
 
 // ---------- Projects ----------

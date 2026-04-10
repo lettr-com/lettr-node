@@ -14,12 +14,41 @@ export type {
   EmailOptions,
   SendEmailRequest,
   SendEmailResponse,
-  SendEmailResult,
+  ScheduleEmailRequest,
+  ScheduledTransmission,
+  CancelScheduledResponse,
   ListEmailsParams,
   ListEmailsResponse,
-  EmailEvent,
-  EmailEventDetail,
+  GetEmailParams,
   GetEmailResponse,
+
+  // Sent Emails
+  SentEmail,
+  ListSentEmailsParams,
+  ListSentEmailsResponse,
+
+  // Email Events
+  BaseEmailEvent,
+  EmailEvent,
+  UserAgentParsed,
+  GeoIp,
+  InjectionEvent,
+  DeliveryEvent,
+  BounceEvent,
+  DelayEvent,
+  OutOfBandEvent,
+  SpamComplaintEvent,
+  PolicyRejectionEvent,
+  ClickEvent,
+  OpenEvent,
+  InitialOpenEvent,
+  AmpClickEvent,
+  AmpOpenEvent,
+  AmpInitialOpenEvent,
+  GenerationFailureEvent,
+  GenerationRejectionEvent,
+  ListUnsubscribeEvent,
+  LinkUnsubscribeEvent,
 
   // Domains
   Domain,
@@ -40,10 +69,14 @@ export type {
   MergeTag,
   GetMergeTagsParams,
   GetMergeTagsResponse,
+  GetTemplateHtmlParams,
+  GetTemplateHtmlResponse,
 
   // Webhooks
   Webhook,
   ListWebhooksResponse,
+  CreateWebhookRequest,
+  UpdateWebhookRequest,
 
   // Projects
   Project,

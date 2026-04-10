@@ -9,6 +9,8 @@ import type {
   UpdateTemplateResponse,
   GetMergeTagsParams,
   GetMergeTagsResponse,
+  GetTemplateHtmlParams,
+  GetTemplateHtmlResponse,
   Result,
 } from "./types";
 
@@ -73,6 +75,18 @@ export class Templates {
       `/templates/${encodeURIComponent(slug)}/merge-tags`,
       {
         query: params as Record<string, string | number | undefined>,
+      }
+    );
+  }
+
+  async getHtml(
+    params: GetTemplateHtmlParams
+  ): Promise<Result<GetTemplateHtmlResponse>> {
+    return this.http.request<GetTemplateHtmlResponse>(
+      "GET",
+      "/templates/html",
+      {
+        query: params as unknown as Record<string, string | number | undefined>,
       }
     );
   }
