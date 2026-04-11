@@ -111,6 +111,7 @@ describe("Templates", () => {
         active_version: 2,
         versions_count: 3,
         html: "<p>Welcome!</p>",
+        json: null,
         created_at: "2025-01-15T10:00:00+00:00",
         updated_at: "2025-01-20T14:30:00+00:00",
       };

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { Lettr } from "./client";
-import type { SendEmailRequest } from "./types";
+import type { SendEmailRequest, ListEmailsResponse, GetEmailResponse } from "./types";
 
 const mockFetch = mock();
 globalThis.fetch = mockFetch as unknown as typeof fetch;
@@ -694,7 +694,7 @@ describe("Emails", () => {
       const client = new Lettr("test-api-key");
       const result = await client.emails.list({ per_page: 25, recipients: "test@example.com" });
 
-      expect(result.data).toEqual(responseData);
+      expect(result.data).toEqual(responseData as unknown as ListEmailsResponse);
       expect(result.error).toBeNull();
 
       const calledUrl = mockFetch.mock.calls[0]![0] as string;
@@ -861,7 +861,7 @@ describe("Emails", () => {
       const client = new Lettr("test-api-key");
       const result = await client.emails.get("trans-456");
 
-      expect(result.data).toEqual(responseData);
+      expect(result.data).toEqual(responseData as unknown as GetEmailResponse);
       expect(result.error).toBeNull();
 
       const calledUrl = mockFetch.mock.calls[0]![0] as string;
