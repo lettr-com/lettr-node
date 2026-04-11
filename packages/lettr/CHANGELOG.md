@@ -1,5 +1,11 @@
 # lettr
 
+## 0.0.0
+
+### Patch Changes
+
+- fefdb98: Bring the client to full parity with the Lettr OpenAPI spec. Adds scheduled emails (schedule/getScheduled/cancelScheduled), separates listSent (/emails) from list (/emails/events),
+
 ## 0.0.0-20260216141848
 
 - Add all missing endpoints.
