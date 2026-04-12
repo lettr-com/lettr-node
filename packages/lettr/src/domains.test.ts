@@ -101,13 +101,18 @@ describe("Domains", () => {
         can_send: true,
         cname_status: "valid",
         dkim_status: "valid",
+        dmarc_status: "valid",
+        spf_status: "valid",
+        is_primary_domain: false,
         tracking_domain: "tracking.example.com",
         dns: {
           dkim: {
             selector: "scph0123",
             public: "MIGfMA0GCSqGSIb3DQEBA...",
+            headers: "from:to:subject:date",
           },
         },
+        dns_provider: null,
         created_at: "2024-01-15T10:30:00+00:00",
         updated_at: "2024-01-16T14:45:00+00:00",
       };
@@ -195,6 +200,9 @@ describe("Domains", () => {
         domain: "example.com",
         dkim_status: "valid",
         cname_status: "valid",
+        dmarc_status: "valid",
+        spf_status: "valid",
+        is_primary_domain: false,
         ownership_verified: "true",
       };
 
@@ -222,12 +230,19 @@ describe("Domains", () => {
         domain: "example.com",
         dkim_status: "unverified",
         cname_status: "unverified",
+        dmarc_status: "missing",
+        spf_status: "unverified",
+        is_primary_domain: false,
         ownership_verified: null,
         dns: {
           dkim_record: null,
           cname_record: null,
           dkim_error: "DKIM record not found",
           cname_error: "CNAME record not found",
+          dmarc_record: null,
+          dmarc_error: "No DMARC record found for example.com or its parent domain.",
+          spf_record: null,
+          spf_error: null,
         },
       };
 

@@ -237,6 +237,7 @@ describe("Templates", () => {
   describe("getMergeTags", () => {
     it("returns merge tags for a template", async () => {
       const responseData = {
+        project_id: 5,
         template_slug: "welcome-email",
         version: 2,
         merge_tags: [

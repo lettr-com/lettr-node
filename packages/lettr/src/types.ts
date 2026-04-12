@@ -382,14 +382,26 @@ export interface Domain {
   updated_at: string;
 }
 
+export interface DnsProvider {
+  provider: string;
+  provider_label: string;
+  nameservers: string[];
+  error: string | null;
+}
+
 export interface DomainDetail extends Domain {
+  dmarc_status: string | null;
+  spf_status: string | null;
+  is_primary_domain: boolean;
   tracking_domain: string | null;
   dns: {
     dkim: {
       selector: string;
       public: string;
+      headers?: string;
     } | null;
   };
+  dns_provider: DnsProvider | null;
 }
 
 export interface ListDomainsResponse {
@@ -404,20 +416,49 @@ export interface CreateDomainResponse {
     public: string;
     selector: string;
     headers: string;
+    signing_domain?: string;
   };
+}
+
+export interface DmarcValidationResult {
+  is_valid: boolean;
+  status: string;
+  found_at_domain: string | null;
+  record: string | null;
+  policy: string | null;
+  subdomain_policy: string | null;
+  error: string | null;
+  covered_by_parent_policy: boolean;
+}
+
+export interface SpfValidationResult {
+  is_valid: boolean;
+  status: string;
+  record: string | null;
+  error: string | null;
+  includes_sparkpost: boolean;
 }
 
 export interface VerifyDomainResponse {
   domain: string;
   dkim_status: string;
   cname_status: string;
+  dmarc_status: string;
+  spf_status: string;
+  is_primary_domain: boolean;
   ownership_verified: string | null;
   dns?: {
     dkim_record: string | null;
     cname_record: string | null;
     dkim_error: string | null;
     cname_error: string | null;
+    dmarc_record: string | null;
+    dmarc_error: string | null;
+    spf_record: string | null;
+    spf_error: string | null;
   };
+  dmarc?: DmarcValidationResult;
+  spf?: SpfValidationResult;
 }
 
 // ---------- Templates ----------
@@ -501,6 +542,7 @@ export interface UpdateTemplateResponse {
 }
 
 export interface GetMergeTagsResponse {
+  project_id: number;
   template_slug: string;
   version: number;
   merge_tags: MergeTag[];

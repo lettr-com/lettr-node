@@ -53,9 +53,12 @@ export type {
   // Domains
   Domain,
   DomainDetail,
+  DnsProvider,
   ListDomainsResponse,
   CreateDomainResponse,
   VerifyDomainResponse,
+  DmarcValidationResult,
+  SpfValidationResult,
 
   // Templates
   Template,
