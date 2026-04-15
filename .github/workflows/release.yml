@@ -43,7 +43,7 @@ jobs:
       - name: Create Release PR or Publish
         uses: changesets/action@v1
         with:
-          publish: npm publish --workspaces --access public --provenance --tag snapshot
+          publish: bunx changeset publish --tag snapshot
           version: bunx changeset version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
