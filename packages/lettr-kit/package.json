@@ -2,6 +2,11 @@
   "name": "lettr-kit",
   "version": "1.0.0",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lettr-com/lettr-node.git",
+    "directory": "packages/lettr-kit"
+  },
   "bin": {
     "lettr-kit": "./dist/index.mjs"
   },

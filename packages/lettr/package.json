@@ -2,6 +2,11 @@
   "name": "lettr",
   "version": "1.0.0",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lettr-com/lettr-node.git",
+    "directory": "packages/lettr"
+  },
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
   "exports": {
