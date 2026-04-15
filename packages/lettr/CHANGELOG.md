@@ -1,5 +1,11 @@
 # lettr
 
+## 1.0.0
+
+### Major Changes
+
+- ab28c97: Initial major release
+
 ## 0.0.0
 
 ### Patch Changes
