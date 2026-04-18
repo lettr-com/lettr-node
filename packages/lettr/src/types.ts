@@ -1,8 +1,27 @@
 // ---------- Shared ----------
 
+// Codes from the OpenAPI `ErrorCode` enum, plus two SDK-synthesized values
+// ("unauthorized" for 401s, "unknown" as a fallback) the server doesn't emit.
+export type ErrorCode =
+  | "validation_error"
+  | "invalid_domain"
+  | "unconfigured_domain"
+  | "send_error"
+  | "retrieval_error"
+  | "transmission_failed"
+  | "resource_already_exists"
+  | "not_found"
+  | "template_not_found"
+  | "insufficient_scope"
+  | "schedule_cancellation_failed"
+  | "quota_exceeded"
+  | "daily_quota_exceeded"
+  | "unauthorized"
+  | "unknown";
+
 export type LettrError =
   | { type: "validation"; message: string; errors: Record<string, string[]> }
-  | { type: "api"; message: string; error_code: string }
+  | { type: "api"; message: string; error_code: ErrorCode }
   | { type: "network"; message: string };
 
 export type Result<T> =
@@ -566,12 +585,36 @@ export interface GetTemplateHtmlResponse {
 
 // ---------- Webhooks ----------
 
+export type WebhookEvent =
+  | "message.injection"
+  | "message.delivery"
+  | "message.bounce"
+  | "message.delay"
+  | "message.out_of_band"
+  | "message.spam_complaint"
+  | "message.policy_rejection"
+  | "engagement.click"
+  | "engagement.open"
+  | "engagement.initial_open"
+  | "engagement.amp_click"
+  | "engagement.amp_open"
+  | "engagement.amp_initial_open"
+  | "generation.generation_failure"
+  | "generation.generation_rejection"
+  | "unsubscribe.list_unsubscribe"
+  | "unsubscribe.link_unsubscribe"
+  | "relay.relay_injection"
+  | "relay.relay_rejection"
+  | "relay.relay_delivery"
+  | "relay.relay_tempfail"
+  | "relay.relay_permfail";
+
 export interface Webhook {
   id: string;
   name: string;
   url: string;
   enabled: boolean;
-  event_types: string[] | null;
+  event_types: WebhookEvent[] | null;
   auth_type: string;
   has_auth_credentials: boolean;
   last_successful_at: string | null;
@@ -593,7 +636,7 @@ export interface CreateWebhookRequest {
   oauth_client_secret?: string;
   oauth_token_url?: string;
   events_mode: "all" | "selected";
-  events?: string[];
+  events?: WebhookEvent[];
 }
 
 export interface UpdateWebhookRequest {
@@ -605,7 +648,7 @@ export interface UpdateWebhookRequest {
   oauth_token_url?: string;
   oauth_client_id?: string;
   oauth_client_secret?: string;
-  events?: string[];
+  events?: WebhookEvent[];
   active?: boolean;
 }
 
