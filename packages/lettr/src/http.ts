@@ -1,4 +1,4 @@
-import type { Result, LettrError } from "./types";
+import type { Result, LettrError, ErrorCode } from "./types";
 
 export interface RequestOptions {
   body?: unknown;
@@ -9,13 +9,13 @@ export interface RequestOptions {
 
 interface ApiValidationError {
   message: string;
-  error_code: string;
+  error_code: ErrorCode;
   errors: Record<string, string[]>;
 }
 
 interface ApiError {
   message: string;
-  error_code: string;
+  error_code: ErrorCode;
 }
 
 export class HttpClient {

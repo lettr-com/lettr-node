@@ -7,6 +7,7 @@ export { Projects } from "./projects";
 export type {
   // Shared
   LettrError,
+  ErrorCode,
   Result,
 
   // Emails
@@ -77,6 +78,7 @@ export type {
 
   // Webhooks
   Webhook,
+  WebhookEvent,
   ListWebhooksResponse,
   CreateWebhookRequest,
   UpdateWebhookRequest,

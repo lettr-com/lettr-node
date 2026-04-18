@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { Lettr } from "./client";
+import type { Webhook } from "./types";
 
 const mockFetch = mock();
 globalThis.fetch = mockFetch as unknown as typeof fetch;
 
-const webhookData = {
+const webhookData: Webhook = {
   id: "webhook-abc123",
   name: "Order Notifications",
   url: "https://example.com/webhook",
