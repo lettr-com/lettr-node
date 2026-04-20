@@ -1,5 +1,11 @@
 # lettr
 
+## 1.0.2
+
+### Patch Changes
+
+- 4871c16: Publish stable 1.0.x to npm dist-tag `latest` (previous releases were routed to the `snapshot` tag by CI).
+
 ## 1.0.1
 
 ### Patch Changes
