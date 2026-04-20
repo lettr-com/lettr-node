@@ -43,7 +43,13 @@ jobs:
       - name: Create Release PR or Publish
         uses: changesets/action@v1
         with:
-          publish: bunx changeset publish --tag snapshot
+          # Resolver MUST stay in `publish:`, not `version:` — `version:` edits
+          # are committed back to the Version Packages PR. The point is that
+          # repo source keeps `workspace:*` and only the publish runner sees
+          # the resolved ranges.
+          publish: |
+            node scripts/resolve-workspace-protocols.mjs
+            bunx changeset publish --tag snapshot
           version: bunx changeset version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
