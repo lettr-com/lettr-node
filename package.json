@@ -3,7 +3,8 @@
   "workspaces": ["packages/*"],
   "scripts": {
     "build": "bun run --filter '*' build",
-    "test": "bun run --filter '*' test"
+    "test": "bun run --filter '*' test",
+    "ci:publish": "node scripts/resolve-workspace-protocols.mjs && bunx changeset publish --tag snapshot"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8"

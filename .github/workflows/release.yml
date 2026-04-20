@@ -43,13 +43,11 @@ jobs:
       - name: Create Release PR or Publish
         uses: changesets/action@v1
         with:
-          # Resolver MUST stay in `publish:`, not `version:` — `version:` edits
-          # are committed back to the Version Packages PR. The point is that
-          # repo source keeps `workspace:*` and only the publish runner sees
-          # the resolved ranges.
-          publish: |
-            node scripts/resolve-workspace-protocols.mjs
-            bunx changeset publish --tag snapshot
+          # `publish:` is exec'd directly (no shell), so chaining must live in
+          # the `ci:publish` script. It rewrites `workspace:*` on the runner,
+          # then invokes `changeset publish`. Keep it out of `version:` — those
+          # edits get committed back to the Version Packages PR.
+          publish: bun run ci:publish
           version: bunx changeset version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
