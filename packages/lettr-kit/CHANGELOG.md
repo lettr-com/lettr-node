@@ -1,5 +1,12 @@
 # lettr-kit
 
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [3cb0a95]
+  - lettr@1.1.0
+
 ## 1.0.2
 
 ### Patch Changes
