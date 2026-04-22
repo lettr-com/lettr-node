@@ -211,6 +211,42 @@ describe("Webhooks", () => {
       expect(body.name).toBe("Updated Webhook");
     });
 
+    it("sends new url field to API", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ message: "Webhook updated successfully.", data: webhookData }),
+      });
+
+      const client = new Lettr("test-api-key");
+      await client.webhooks.update("webhook-abc123", {
+        url: "https://new.example.com/hook",
+      });
+
+      const [, init] = mockFetch.mock.calls[0]!;
+      const body = JSON.parse(init.body as string);
+      expect(body.url).toBe("https://new.example.com/hook");
+      expect(body.target).toBeUndefined();
+    });
+
+    it("translates deprecated target to url", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ message: "Webhook updated successfully.", data: webhookData }),
+      });
+
+      const client = new Lettr("test-api-key");
+      await client.webhooks.update("webhook-abc123", {
+        target: "https://legacy.example.com/hook",
+      });
+
+      const [, init] = mockFetch.mock.calls[0]!;
+      const body = JSON.parse(init.body as string);
+      expect(body.url).toBe("https://legacy.example.com/hook");
+      expect(body.target).toBeUndefined();
+    });
+
     it("updates webhook active status", async () => {
       const updatedData = { ...webhookData, enabled: false };
 

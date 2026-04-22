@@ -31,10 +31,12 @@ export class Webhooks {
     webhookId: string,
     data: UpdateWebhookRequest
   ): Promise<Result<Webhook>> {
+    const { target, url, ...rest } = data;
+    const body = { ...rest, url: url ?? target };
     return this.http.request<Webhook>(
       "PUT",
       `/webhooks/${encodeURIComponent(webhookId)}`,
-      { body: data }
+      { body }
     );
   }
 
