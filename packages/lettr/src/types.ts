@@ -641,6 +641,8 @@ export interface CreateWebhookRequest {
 
 export interface UpdateWebhookRequest {
   name?: string;
+  url?: string;
+  /** @deprecated Use `url` instead. Passing `target` still works; it will be sent as `url` to the API. */
   target?: string;
   auth_type?: "none" | "basic" | "oauth2";
   auth_username?: string;
