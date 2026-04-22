@@ -1,5 +1,11 @@
 # lettr
 
+## 1.1.0
+
+### Minor Changes
+
+- 3cb0a95: Webhooks: `UpdateWebhookRequest` now accepts `url` (matching the API and the shape of `CreateWebhookRequest`). The legacy `target` field is marked `@deprecated` but still works — it is translated to `url` on the wire, so existing callers continue to function.
+
 ## 1.0.2
 
 ### Patch Changes
