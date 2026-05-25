@@ -1,5 +1,11 @@
 # lettr
 
+## 1.2.0
+
+### Minor Changes
+
+- 7bc26f0: Add /audience routes (lists, contacts, topics, properties, segments) under client.audience
+
 ## 1.1.0
 
 ### Minor Changes
