@@ -680,6 +680,284 @@ export interface ListProjectsResponse {
   };
 }
 
+// ---------- Audience ----------
+
+export interface AudiencePagination {
+  total: number;
+  per_page: number;
+  current_page: number;
+  last_page: number;
+}
+
+export type AudienceContactStatus =
+  | "subscribed"
+  | "unsubscribed"
+  | "bounced"
+  | "complained"
+  | "unverified";
+
+// Audience: Lists
+
+export interface AudienceList {
+  id: string;
+  name: string;
+  contacts_count: number;
+}
+
+export interface ListAudienceListsParams {
+  page?: number;
+  per_page?: number;
+}
+
+export interface ListAudienceListsData {
+  lists: AudienceList[];
+  pagination: AudiencePagination;
+}
+
+export interface CreateAudienceListRequest {
+  name: string;
+}
+
+export interface UpdateAudienceListRequest {
+  name?: string;
+}
+
+export interface BulkDeleteAudienceListsRequest {
+  list_ids: string[];
+}
+
+export interface BulkDeleteAudienceListsData {
+  deleted: number;
+}
+
+// Audience: Contacts
+
+export interface AudienceContactListLink {
+  id: string;
+  name: string;
+}
+
+export interface AudienceContactTopicLink {
+  id: string;
+  name: string;
+}
+
+export interface AudienceContact {
+  id: string;
+  email: string;
+  status: AudienceContactStatus;
+  properties: Record<string, string>;
+  created_at: string;
+  lists: AudienceContactListLink[];
+  topics: AudienceContactTopicLink[];
+}
+
+export interface ListAudienceContactsParams {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  status?: AudienceContactStatus;
+  list_id?: string;
+  segment_id?: string;
+}
+
+export interface ListAudienceContactsData {
+  contacts: AudienceContact[];
+  pagination: AudiencePagination;
+}
+
+export interface DoubleOptInConfig {
+  from: string;
+  from_name?: string | null;
+  subject: string;
+  template_slug: string;
+  redirect_url: string;
+}
+
+export interface CreateAudienceContactRequest {
+  email: string;
+  list_id?: string | null;
+  properties?: Record<string, string> | null;
+  double_opt_in?: DoubleOptInConfig;
+}
+
+export interface UpdateAudienceContactRequest {
+  email?: string;
+  status?: "subscribed" | "unsubscribed";
+  properties?: Record<string, string | null>;
+}
+
+export interface BulkCreateAudienceContactsRequest {
+  emails: string[];
+  list_id?: string | null;
+  properties?: Record<string, string> | null;
+}
+
+export interface BulkCreateAudienceContactsData {
+  created: number;
+  already_existed: number;
+}
+
+export interface BulkAudienceContactListsRequest {
+  contact_ids: string[];
+  list_ids: string[];
+}
+
+export interface BulkAttachContactsListsData {
+  attached: number;
+  already_attached: number;
+  total_pairs: number;
+}
+
+export interface BulkDetachContactsListsData {
+  detached: number;
+  not_present: number;
+  total_pairs: number;
+}
+
+// Audience: Topics
+
+export type AudienceTopicVisibility = "private" | "public";
+
+export type AudienceTopicDefaultSubscription = "opt_in" | "opt_out";
+
+export interface AudienceTopic {
+  id: string;
+  name: string;
+  description: string | null;
+  default_subscription: AudienceTopicDefaultSubscription;
+  visibility: AudienceTopicVisibility;
+  contacts_count: number;
+  created_at: string | null;
+}
+
+export interface ListAudienceTopicsParams {
+  page?: number;
+  per_page?: number;
+}
+
+export interface ListAudienceTopicsData {
+  topics: AudienceTopic[];
+  pagination: AudiencePagination;
+}
+
+export interface CreateAudienceTopicRequest {
+  name: string;
+  description?: string | null;
+  default_subscription?: AudienceTopicDefaultSubscription;
+  visibility?: AudienceTopicVisibility;
+}
+
+export interface UpdateAudienceTopicRequest {
+  name?: string;
+  description?: string | null;
+  visibility?: AudienceTopicVisibility;
+}
+
+// Audience: Properties
+
+export type AudiencePropertyType =
+  | "string"
+  | "number"
+  | "boolean"
+  | "date"
+  | "json";
+
+export interface AudienceProperty {
+  id: string;
+  name: string;
+  type: AudiencePropertyType;
+  fallback_value: string | null;
+  created_at: string;
+}
+
+export interface ListAudiencePropertiesParams {
+  page?: number;
+  per_page?: number;
+}
+
+export interface ListAudiencePropertiesData {
+  properties: AudienceProperty[];
+  pagination: AudiencePagination;
+}
+
+export interface CreateAudiencePropertyRequest {
+  name: string;
+  type: AudiencePropertyType;
+  fallback_value?: string | null;
+}
+
+export interface UpdateAudiencePropertyRequest {
+  fallback_value?: string | null;
+}
+
+// Audience: Segments
+
+export type SegmentOperator =
+  | "contains"
+  | "not_contains"
+  | "equals"
+  | "not_equals"
+  | "starts_with"
+  | "not_starts_with"
+  | "ends_with"
+  | "not_ends_with"
+  | "is_true"
+  | "is_false"
+  | "greater_than"
+  | "greater_than_or_equal"
+  | "less_than"
+  | "less_than_or_equal"
+  | "before"
+  | "after";
+
+export interface SegmentCondition {
+  field: string;
+  operator: SegmentOperator;
+  value?: string | null;
+}
+
+export interface SegmentConditionGroup {
+  conditions: SegmentCondition[];
+}
+
+export interface SegmentConditionsInput {
+  groups: SegmentConditionGroup[];
+}
+
+export interface AudienceSegment {
+  id: string;
+  name: string;
+  list_id: string | null;
+  list_name: string | null;
+  condition_groups: SegmentConditionGroup[];
+  cached_contacts_count: number | null;
+  created_at: string;
+}
+
+export interface ListAudienceSegmentsParams {
+  page?: number;
+  per_page?: number;
+  list_id?: string;
+}
+
+export interface ListAudienceSegmentsData {
+  segments: AudienceSegment[];
+  pagination: AudiencePagination;
+}
+
+export interface CreateAudienceSegmentRequest {
+  name: string;
+  list_id?: string | null;
+  conditions: SegmentConditionsInput;
+}
+
+export interface UpdateAudienceSegmentRequest {
+  name?: string;
+  list_id?: string | null;
+  conditions?: SegmentConditionsInput;
+}
+
 // ---------- System ----------
 
 export interface HealthResponse {

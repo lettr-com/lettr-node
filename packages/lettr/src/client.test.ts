@@ -16,6 +16,12 @@ describe("Lettr", () => {
     expect(client.templates).toBeDefined();
     expect(client.webhooks).toBeDefined();
     expect(client.projects).toBeDefined();
+    expect(client.audience).toBeDefined();
+    expect(client.audience.lists).toBeDefined();
+    expect(client.audience.contacts).toBeDefined();
+    expect(client.audience.topics).toBeDefined();
+    expect(client.audience.properties).toBeDefined();
+    expect(client.audience.segments).toBeDefined();
   });
 
   describe("health", () => {
