@@ -16,11 +16,41 @@ export type ErrorCode =
   | "schedule_cancellation_failed"
   | "quota_exceeded"
   | "daily_quota_exceeded"
+  | "campaign_not_sendable"
+  | "campaign_not_scheduled"
   | "unauthorized"
   | "unknown";
 
+/**
+ * Always discriminate on `.type` first; treat `.error_code` as a sub-discriminator
+ * INSIDE a type-narrowed block. Because `error_code` is present on both the
+ * `validation` (optional) and `api` (required) variants, narrowing directly
+ * with `if (error.error_code === "x")` widens to `validation | api` and loses
+ * access to `error.errors`. Correct pattern:
+ *
+ * ```ts
+ * if (error.type === "validation") {
+ *   if (error.error_code === "campaign_not_sendable") { … }      // precondition
+ *   else { showFieldErrors(error.errors); }                       // field validation
+ * } else if (error.type === "api") {
+ *   if (error.error_code === "unauthorized") { … }
+ * }
+ * ```
+ */
 export type LettrError =
-  | { type: "validation"; message: string; errors: Record<string, string[]> }
+  | {
+      type: "validation";
+      message: string;
+      errors: Record<string, string[]>;
+      /**
+       * The API's `error_code`, when present. Populated for every 422 that
+       * carries one — including precondition failures whose 422 schema has
+       * no `errors` map (e.g. `campaign_not_sendable`, `campaign_not_scheduled`).
+       * Lets callers discriminate beyond the human-readable `message` AFTER
+       * narrowing on `type === "validation"`.
+       */
+      error_code?: ErrorCode;
+    }
   | { type: "api"; message: string; error_code: ErrorCode }
   | { type: "network"; message: string };
 
@@ -956,6 +986,110 @@ export interface UpdateAudienceSegmentRequest {
   name?: string;
   list_id?: string | null;
   conditions?: SegmentConditionsInput;
+}
+
+// ---------- Campaigns ----------
+
+export type CampaignStatus =
+  | "draft"
+  | "scheduled"
+  | "preparing"
+  | "in_review"
+  | "sending"
+  | "sent"
+  | "failed";
+
+export type CampaignEventType =
+  | "injection"
+  | "delivery"
+  | "bounce"
+  | "spam_complaint"
+  | "open"
+  | "click"
+  | "list_unsubscribe";
+
+export interface CampaignStats {
+  injections: number;
+  deliveries: number;
+  bounces: number;
+  spam_complaints: number;
+  opens: number;
+  unique_opens: number;
+  clicks: number;
+  unique_clicks: number;
+  unsubscribes: number;
+}
+
+export interface CampaignPagination {
+  total: number;
+  per_page: number;
+  current_page: number;
+  last_page: number;
+}
+
+export interface CampaignSummary {
+  id: string;
+  name: string;
+  subject: string | null;
+  from_email: string | null;
+  from_name: string | null;
+  reply_to: string | null;
+  status: CampaignStatus;
+  scheduled_at: string | null;
+  total_recipients: number | null;
+  sent_count: number;
+  sent_at: string | null;
+  created_at: string;
+  stats: CampaignStats;
+}
+
+export interface CampaignDetail extends CampaignSummary {
+  html_content: string | null;
+}
+
+export interface ListCampaignsParams {
+  page?: number;
+  per_page?: number;
+  status?: CampaignStatus;
+}
+
+export interface ListCampaignsData {
+  campaigns: CampaignSummary[];
+  pagination: CampaignPagination;
+}
+
+export interface CampaignEvent {
+  event_id: string;
+  event_type: CampaignEventType;
+  email: string;
+  timestamp: string;
+  bounce_class: string | null;
+  reason: string | null;
+  target_link_url: string | null;
+  user_agent: string | null;
+}
+
+export interface ListCampaignEventsParams {
+  event_type?: CampaignEventType;
+  email?: string;
+  start_date?: string;
+  end_date?: string;
+  limit?: number;
+  cursor?: string;
+}
+
+export interface ListCampaignEventsData {
+  events: CampaignEvent[];
+  next_cursor: string | null;
+}
+
+export interface ScheduleCampaignRequest {
+  scheduled_at: string;
+}
+
+export interface CampaignActionResponse {
+  message: string;
+  data?: CampaignSummary;
 }
 
 // ---------- System ----------

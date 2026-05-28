@@ -22,6 +22,7 @@ describe("Lettr", () => {
     expect(client.audience.topics).toBeDefined();
     expect(client.audience.properties).toBeDefined();
     expect(client.audience.segments).toBeDefined();
+    expect(client.campaigns).toBeDefined();
   });
 
   describe("health", () => {

@@ -10,6 +10,7 @@ export { AudienceContacts } from "./audience-contacts";
 export { AudienceTopics } from "./audience-topics";
 export { AudienceProperties } from "./audience-properties";
 export { AudienceSegments } from "./audience-segments";
+export { Campaigns } from "./campaigns";
 export type {
   // Shared
   LettrError,
@@ -139,6 +140,21 @@ export type {
   ListAudienceSegmentsData,
   CreateAudienceSegmentRequest,
   UpdateAudienceSegmentRequest,
+
+  // Campaigns
+  CampaignStatus,
+  CampaignEventType,
+  CampaignStats,
+  CampaignPagination,
+  CampaignSummary,
+  CampaignDetail,
+  ListCampaignsParams,
+  ListCampaignsData,
+  CampaignEvent,
+  ListCampaignEventsParams,
+  ListCampaignEventsData,
+  ScheduleCampaignRequest,
+  CampaignActionResponse,
 
   // System
   HealthResponse,

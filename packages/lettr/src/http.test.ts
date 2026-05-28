@@ -157,6 +157,7 @@ describe("HttpClient", () => {
         type: "validation",
         message: "Validation failed.",
         errors: { name: ["Name is required."] },
+        error_code: "validation_error",
       });
     });
 
