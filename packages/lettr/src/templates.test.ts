@@ -96,6 +96,7 @@ describe("Templates", () => {
         type: "validation",
         message: "Validation failed.",
         errors: { name: ["The name field is required."] },
+        error_code: "validation_error",
       });
     });
   });

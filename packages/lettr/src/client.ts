@@ -5,6 +5,7 @@ import { Templates } from "./templates";
 import { Webhooks } from "./webhooks";
 import { Projects } from "./projects";
 import { Audience } from "./audience";
+import { Campaigns } from "./campaigns";
 import type { HealthResponse, AuthCheckResponse, Result } from "./types";
 
 const BASE_URL = "https://app.lettr.com/api";
@@ -16,6 +17,7 @@ export class Lettr {
   public readonly webhooks: Webhooks;
   public readonly projects: Projects;
   public readonly audience: Audience;
+  public readonly campaigns: Campaigns;
 
   private http: HttpClient;
 
@@ -27,6 +29,7 @@ export class Lettr {
     this.webhooks = new Webhooks(this.http);
     this.projects = new Projects(this.http);
     this.audience = new Audience(this.http);
+    this.campaigns = new Campaigns(this.http);
   }
 
   async health(): Promise<Result<HealthResponse>> {

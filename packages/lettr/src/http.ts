@@ -9,8 +9,11 @@ export interface RequestOptions {
 
 interface ApiValidationError {
   message: string;
-  error_code: ErrorCode;
-  errors: Record<string, string[]>;
+  // Both optional: a field-validation 422 carries `errors` (and usually
+  // `error_code: "validation_error"`), while a precondition 422 (e.g.
+  // `campaign_not_sendable`) carries only `error_code` and no `errors` map.
+  error_code?: ErrorCode;
+  errors?: Record<string, string[]>;
 }
 
 interface ApiError {
@@ -84,6 +87,9 @@ export class HttpClient {
         type: "validation",
         message: errorBody.message ?? "Validation failed",
         errors: errorBody.errors ?? {},
+        // Only include error_code when the API actually returned one, so
+        // result shapes stay identical for 422s that omit it.
+        ...(errorBody.error_code ? { error_code: errorBody.error_code } : {}),
       };
       return { data: null, error };
     }
