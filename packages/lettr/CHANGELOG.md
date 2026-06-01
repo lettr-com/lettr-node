@@ -1,5 +1,11 @@
 # lettr
 
+## 1.4.0
+
+### Minor Changes
+
+- 77c7b72: Send a User-Agent header (lettr-node/<version>, with the calling kit appended) on every request
+
 ## 1.3.0
 
 ### Minor Changes
