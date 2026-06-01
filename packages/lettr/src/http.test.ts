@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { HttpClient } from "./http";
+import pkg from "../package.json";
+
+const USER_AGENT = `lettr-node/${pkg.version}`;
 
 const mockFetch = mock();
 globalThis.fetch = mockFetch as unknown as typeof fetch;
@@ -23,7 +26,7 @@ describe("HttpClient", () => {
 
       expect(mockFetch).toHaveBeenCalledWith("https://api.example.com/test", {
         method: "GET",
-        headers: { Authorization: "Bearer test-key" },
+        headers: { Authorization: "Bearer test-key", "User-Agent": USER_AGENT },
       });
     });
 
@@ -40,6 +43,7 @@ describe("HttpClient", () => {
         method: "POST",
         headers: {
           Authorization: "Bearer test-key",
+          "User-Agent": USER_AGENT,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ name: "foo" }),
