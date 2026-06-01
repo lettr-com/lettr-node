@@ -1,4 +1,8 @@
 import type { Result, LettrError, ErrorCode } from "./types";
+import pkg from "../package.json";
+
+/** SDK version reported to the API, sourced from package.json (inlined at build). */
+const VERSION = pkg.version;
 
 export interface RequestOptions {
   body?: unknown;
@@ -24,7 +28,9 @@ interface ApiError {
 export class HttpClient {
   constructor(
     private baseUrl: string,
-    private apiKey: string
+    private apiKey: string,
+    /** Caller identifier appended to the SDK's User-Agent (e.g. "lettr-kit/1.0.5"). */
+    private userAgent?: string
   ) {}
 
   async request<T>(
@@ -48,6 +54,9 @@ export class HttpClient {
 
     const headers: Record<string, string> = {
       Authorization: `Bearer ${this.apiKey}`,
+      "User-Agent": this.userAgent
+        ? `lettr-node/${VERSION} ${this.userAgent}`
+        : `lettr-node/${VERSION}`,
     };
 
     const init: RequestInit = { method, headers };
@@ -71,11 +80,36 @@ export class HttpClient {
       return { data: undefined as T, error: null };
     }
 
-    const body = await response.json();
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      // Not every response carries valid JSON: gateway 5xx pages, empty error
+      // bodies, etc. A malformed success body is a real failure; for error
+      // statuses fall through with an empty object so the status-specific
+      // handlers below still produce their fallback errors (e.g. 401).
+      if (response.ok) {
+        return {
+          data: null,
+          error: {
+            type: "api",
+            message: "Received a malformed response from the Lettr API",
+            error_code: "unknown",
+          },
+        };
+      }
+      body = {};
+    }
 
     if (response.ok) {
       if (shouldUnwrap) {
-        const data = (body as { data?: T }).data ?? (body as T);
+        // Unwrap only a real `{ data: ... }` envelope. A non-object body
+        // (null, primitive, array) or a bare resource without a `data` key
+        // is returned as-is — and a present-but-null `data` is honored as
+        // null rather than falling back to the whole envelope.
+        const isEnvelope =
+          typeof body === "object" && body !== null && "data" in body;
+        const data = isEnvelope ? (body as { data: T }).data : (body as T);
         return { data, error: null };
       }
       return { data: body as T, error: null };

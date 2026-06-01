@@ -3,7 +3,7 @@ import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import pc from "picocolors";
 import * as p from "@clack/prompts";
-import { Lettr } from "lettr";
+import { createClient } from "../client.ts";
 
 export const initCommand = defineCommand({
   meta: { name: "init", description: "Create a lettr.json config file" },
@@ -47,7 +47,7 @@ export const initCommand = defineCommand({
     if (resolvedKey) {
       const s = p.spinner();
       s.start("Testing connection");
-      const client = new Lettr(resolvedKey);
+      const client = createClient(resolvedKey);
       const result = await client.authCheck();
       if (result.error) {
         s.stop("Connection failed");
