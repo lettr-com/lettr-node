@@ -10,6 +10,11 @@ import type { HealthResponse, AuthCheckResponse, Result } from "./types";
 
 const BASE_URL = "https://app.lettr.com/api";
 
+export interface LettrOptions {
+  /** Caller identifier appended to the SDK's User-Agent (e.g. "lettr-kit/1.0.5"). */
+  userAgent?: string;
+}
+
 export class Lettr {
   public readonly emails: Emails;
   public readonly domains: Domains;
@@ -21,8 +26,8 @@ export class Lettr {
 
   private http: HttpClient;
 
-  constructor(apiKey: string) {
-    this.http = new HttpClient(BASE_URL, apiKey);
+  constructor(apiKey: string, options?: LettrOptions) {
+    this.http = new HttpClient(BASE_URL, apiKey, options?.userAgent);
     this.emails = new Emails(this.http);
     this.domains = new Domains(this.http);
     this.templates = new Templates(this.http);

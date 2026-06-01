@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { Lettr } from "./client";
 import type { SendEmailRequest, ListEmailsResponse, GetEmailResponse } from "./types";
+import pkg from "../package.json";
+
+const USER_AGENT = `lettr-node/${pkg.version}`;
 
 const mockFetch = mock();
 globalThis.fetch = mockFetch as unknown as typeof fetch;
@@ -146,6 +149,7 @@ describe("Emails", () => {
           headers: {
             "Content-Type": "application/json",
             Authorization: "Bearer my-secret-key",
+            "User-Agent": USER_AGENT,
           },
           body: JSON.stringify(validRequest),
         }

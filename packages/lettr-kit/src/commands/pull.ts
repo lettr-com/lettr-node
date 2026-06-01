@@ -1,11 +1,11 @@
 import { defineCommand } from "citty";
-import { Lettr } from "lettr";
 import type { Template } from "lettr";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import pc from "picocolors";
 import * as p from "@clack/prompts";
 import { loadConfig } from "../config.ts";
+import { createClient } from "../client.ts";
 import { handleError } from "../utils/ui.ts";
 
 export const pullCommand = defineCommand({
@@ -26,7 +26,7 @@ export const pullCommand = defineCommand({
   },
   async run({ args }) {
     const config = await loadConfig(args["api-key"]);
-    const client = new Lettr(config.apiKey);
+    const client = createClient(config.apiKey);
 
     const s = p.spinner();
     s.start("Fetching template list");

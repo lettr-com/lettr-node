@@ -1,4 +1,5 @@
 export { Lettr } from "./client";
+export type { LettrOptions } from "./client";
 export { Emails } from "./emails";
 export { Domains } from "./domains";
 export { Templates } from "./templates";
