@@ -1,11 +1,12 @@
 # Lettr Node.js SDK
 
-Official Node.js SDK for the [Lettr](https://lettr.com) transactional email API.
+Official Node.js SDK for the [Lettr](https://lettr.com) transactional email API. Type-safe client that returns a `Result` (`{ data, error }`) instead of throwing — covers emails, templates, domains, webhooks, audience, and campaigns.
 
 ## Installation
 
 ```bash
-bun install lettr
+npm install lettr
+# or: pnpm add lettr / yarn add lettr / bun add lettr
 ```
 
 ## Usage
@@ -13,7 +14,7 @@ bun install lettr
 ```typescript
 import { Lettr } from "lettr";
 
-const client = new Lettr("your-api-key");
+const client = new Lettr(process.env.LETTR_API_KEY!);
 
 const { data, error } = await client.emails.send({
   from: "sender@example.com",
@@ -23,49 +24,31 @@ const { data, error } = await client.emails.send({
 });
 
 if (error) {
+  // error.type is "validation" | "api" | "network"
   console.error(error.message);
 } else {
   console.log(data.request_id);
 }
 ```
 
-## Campaigns
+Every method returns a `Result<T>` — destructure `{ data, error }` and handle `error` before reading `data`. The SDK never throws for API or network failures.
 
-List, retrieve, and act on campaigns under `client.campaigns`:
+## Documentation
 
-```typescript
-// List sent campaigns
-const { data } = await client.campaigns.list({ status: "sent" });
-data?.campaigns.forEach((c) => console.log(c.name, c.stats.opens));
+Full guides for every resource, with complete request/response details, live in the docs:
 
-// Retrieve a single campaign (includes rendered HTML)
-const { data: campaign } = await client.campaigns.get(campaignId);
+📚 **[docs.lettr.com/quickstart/nodejs](https://docs.lettr.com/quickstart/nodejs/introduction)**
 
-// Engagement events with cursor-based pagination
-const { data: events } = await client.campaigns.listEvents(campaignId, {
-  event_type: "open",
-  limit: 50,
-});
-// keep paging while events.next_cursor is non-null
-
-// Dispatch a draft, schedule a future send, or unschedule
-await client.campaigns.send(campaignId);
-await client.campaigns.schedule(campaignId, {
-  scheduled_at: "2026-06-01T09:00:00+00:00",
-});
-await client.campaigns.unschedule(campaignId);
-```
-
-The three action methods (`send` / `schedule` / `unschedule`) resolve to a
-`{ message, data? }` wrapper. Guard the optional `data` field — the API may
-omit it in a rare post-action race:
-
-```typescript
-const { data, error } = await client.campaigns.send(campaignId);
-if (error) return handle(error);
-console.log(data.message); // always present
-if (data.data) console.log(data.data.status); // optional — guard first
-```
+| Topic | Guide |
+|-|-|
+| Install, client, the Result pattern | [Installation](https://docs.lettr.com/quickstart/nodejs/installation) |
+| HTML, text, templates, attachments, scheduling, errors | [Sending Emails](https://docs.lettr.com/quickstart/nodejs/sending-emails) |
+| Manage Lettr templates & merge tags | [Templates](https://docs.lettr.com/quickstart/nodejs/templates) |
+| Add, verify, and manage sending domains | [Domains](https://docs.lettr.com/quickstart/nodejs/domains) |
+| Webhook endpoints for delivery & engagement events | [Webhooks](https://docs.lettr.com/quickstart/nodejs/webhooks) |
+| Lists, contacts, topics, properties, segments | [Audience](https://docs.lettr.com/quickstart/nodejs/audience) |
+| List, send, and schedule campaigns | [Campaigns](https://docs.lettr.com/quickstart/nodejs/campaigns) |
+| Endpoint reference (params & schemas) | [API Reference](https://docs.lettr.com/api-reference/introduction) |
 
 ## License
 

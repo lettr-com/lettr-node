@@ -6,25 +6,19 @@ Official Node.js SDK and CLI tools for the [Lettr](https://lettr.com) transactio
 
 | Package | Description |
 | --- | --- |
-| [`lettr`](./packages/lettr) | Core SDK — type-safe API client for sending emails, managing domains, templates, and webhooks |
+| [`lettr`](./packages/lettr) | Core SDK — type-safe API client for emails, templates, domains, webhooks, audience, and campaigns |
 | [`lettr-kit`](./packages/lettr-kit) | CLI tool for managing Lettr email templates locally |
 
 ## Quick Start
 
-### Install
-
 ```bash
 npm install lettr
-# or
-bun add lettr
 ```
-
-### Send an Email
 
 ```typescript
 import { Lettr } from "lettr";
 
-const client = new Lettr("lttr_your_api_key");
+const client = new Lettr(process.env.LETTR_API_KEY!);
 
 const { data, error } = await client.emails.send({
   from: "sender@example.com",
@@ -32,93 +26,25 @@ const { data, error } = await client.emails.send({
   subject: "Welcome!",
   html: "<h1>Hello!</h1>",
 });
-```
-
-### Send with a Template
-
-When using a template, `subject` is optional — the template's subject is used by default. You can pass `subject` to override it.
-
-```typescript
-// Subject defined by the template
-const { data, error } = await client.emails.send({
-  from: "sender@example.com",
-  to: ["recipient@example.com"],
-  template_slug: "welcome",
-  substitution_data: { name: "John" },
-});
-
-// Override the template's subject
-const { data, error } = await client.emails.send({
-  from: "sender@example.com",
-  to: ["recipient@example.com"],
-  template_slug: "welcome",
-  subject: "Custom Subject",
-  substitution_data: { name: "John" },
-});
-```
-
-### Error Handling
-
-All methods return a `Result<T>` with discriminated `data` and `error` fields:
-
-```typescript
-const { data, error } = await client.emails.send({ ... });
 
 if (error) {
-  // error.type is "validation" | "api" | "network"
-  console.error(error.message);
-  return;
+  console.error(error.message); // error.type: "validation" | "api" | "network"
+} else {
+  console.log(data.request_id);
 }
-
-console.log(data.request_id);
 ```
 
-## API Reference
+Every method returns a `Result<T>` (`{ data, error }`) — the SDK never throws for API or network failures.
 
-```typescript
-const client = new Lettr("lttr_...");
+## Documentation
 
-// Emails
-client.emails.send(request)
-client.emails.list(params?)
-client.emails.get(requestId)
-
-// Domains
-client.domains.list()
-client.domains.create(domain)
-client.domains.get(domain)
-client.domains.delete(domain)
-client.domains.verify(domain)
-
-// Templates
-client.templates.list(params?)
-client.templates.create(data)
-client.templates.get(slug, projectId?)
-client.templates.update(slug, data)
-client.templates.delete(slug, projectId?)
-client.templates.getMergeTags(slug, params?)
-
-// Webhooks
-client.webhooks.list()
-client.webhooks.get(webhookId)
-
-// Projects
-client.projects.list(params?)
-
-// System
-client.health()
-client.authCheck()
-```
+📚 **[docs.lettr.com/quickstart/nodejs](https://docs.lettr.com/quickstart/nodejs/introduction)** — full guides for sending, templates, domains, webhooks, audience, and campaigns, plus the [API reference](https://docs.lettr.com/api-reference/introduction).
 
 ## CLI (`lettr-kit`)
 
 ```bash
 npm install -g lettr-kit
-# or
-bunx lettr-kit
-```
 
-```bash
 lettr-kit init          # Interactive setup — creates lettr.json
 lettr-kit list          # List all templates with sync status
 lettr-kit pull          # Pull templates as HTML files
