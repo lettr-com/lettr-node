@@ -817,15 +817,159 @@ export interface UpdateAudienceContactRequest {
   properties?: Record<string, string | null>;
 }
 
-export interface BulkCreateAudienceContactsRequest {
-  emails: string[];
-  list_id?: string | null;
-  properties?: Record<string, string> | null;
+/**
+ * What a write request should DO with a topic.
+ *
+ * Distinct from {@link AudienceTopicDefaultSubscription}, which describes how a
+ * topic behaves for contacts that say nothing. `"opt_out"` here also cancels
+ * the auto-subscription a topic with `default_subscription: "opt_out"` would
+ * otherwise give a newly created contact, so both can be expressed in one
+ * request instead of a create followed by an unsubscribe.
+ */
+export type AudienceTopicSubscriptionState = "opt_in" | "opt_out";
+
+export interface AudienceTopicSubscription {
+  id: string;
+  /** Defaults to `"opt_in"` server-side when omitted. */
+  subscription?: AudienceTopicSubscriptionState;
 }
 
+/**
+ * One contact in a bulk create payload.
+ *
+ * `list_ids` and `topics` here are applied **on top of** the batch-wide ones on
+ * {@link BulkCreateAudienceContactsRequest}; a `properties` key here overrides
+ * the batch-wide value for the same key, and a row-level `"opt_out"` beats a
+ * batch-level `"opt_in"`.
+ *
+ * A row that fails validation is skipped rather than failing the request — it
+ * comes back in {@link BulkCreateAudienceContactsData.errors}.
+ */
+export interface BulkAudienceContactRow {
+  email: string;
+  /** Each key must match a property defined for the team. */
+  properties?: Record<string, string> | null;
+  list_ids?: string[] | null;
+  topics?: AudienceTopicSubscription[] | null;
+}
+
+interface BulkCreateAudienceContactsOptions {
+  /** Folded into `list_ids` server-side. Kept for backward compatibility. */
+  list_id?: string | null;
+  /** Applied to every contact in the batch; a row's own key wins. */
+  properties?: Record<string, string> | null;
+  /** Max 50. Batch-wide lists, unioned into every row. */
+  list_ids?: string[] | null;
+  /** Max 50. Batch-wide topic subscriptions. */
+  topics?: AudienceTopicSubscription[] | null;
+  /**
+   * Defaults to `false`. When `false`, existing contacts keep their properties
+   * but are still attached to the requested lists. When `true`, submitted
+   * property keys overwrite (absent keys are preserved) and `"opt_out"` can
+   * drop an existing subscription.
+   */
+  update_existing?: boolean;
+}
+
+/**
+ * Two shapes, exactly one of which must be filled in:
+ *
+ * - `emails` — a flat list of addresses that all share the batch-wide lists,
+ *   properties and topics. The original shape, unchanged.
+ * - `contacts` — one {@link BulkAudienceContactRow} per contact, each with its
+ *   own properties, lists and topic subscriptions.
+ *
+ * Up to 1000 entries either way.
+ */
+export type BulkCreateAudienceContactsRequest =
+  | (BulkCreateAudienceContactsOptions & {
+      emails: string[];
+      contacts?: never;
+    })
+  | (BulkCreateAudienceContactsOptions & {
+      contacts: BulkAudienceContactRow[];
+      emails?: never;
+    });
+
+/** Reason a single row was skipped during a bulk create. */
+export type BulkAudienceContactErrorCode =
+  | "missing_email"
+  | "invalid_email"
+  | "invalid_property_value"
+  | "unknown_property_key"
+  | "unknown_list"
+  | "unknown_topic"
+  | "invalid_topic_subscription";
+
+export interface BulkAudienceContactError {
+  /** Zero-based position of the row in the submitted array. */
+  index: number;
+  email: string | null;
+  /**
+   * `(string & {})` keeps autocomplete for the known codes while letting a code
+   * added server-side through as a plain string instead of failing to type.
+   */
+  error_code: BulkAudienceContactErrorCode | (string & {});
+  error: string;
+}
+
+/**
+ * Identity of a contact that exists after a bulk create, so the caller can
+ * chain straight into the bulk list and topic endpoints without looking ids up.
+ */
+export interface BulkAudienceContactRef {
+  id: string;
+  email: string;
+  /** `true` when this request created the contact, `false` when it already existed. */
+  created: boolean;
+}
+
+/**
+ * A bulk create can partially succeed: rows that fail validation are skipped
+ * and reported in `errors` while the rest of the batch is written, and the call
+ * still returns HTTP 201. **Do not read a successful `result.error === null` as
+ * "everything landed"** — check `errors.length`.
+ *
+ * `already_existed` and `updated` overlap by design. They answer different
+ * questions ("was the address already in the audience?" vs "did this request
+ * change the contact?"), so they do not sum to the row count: a contact that
+ * already existed and got attached to a list is counted in both.
+ */
 export interface BulkCreateAudienceContactsData {
   created: number;
   already_existed: number;
+  /**
+   * Existing contacts this request changed — properties merged, a list or topic
+   * attached, or a subscription dropped.
+   */
+  updated: number;
+  /** Number of skipped rows. Always equal to `errors.length`. */
+  error_count: number;
+  errors: BulkAudienceContactError[];
+  /** Every contact that exists after the request, in submission order. */
+  contacts: BulkAudienceContactRef[];
+}
+
+/**
+ * Body for the bulk topic subscribe/unsubscribe endpoints. Both directions
+ * process every `contact_ids × topic_ids` combination.
+ */
+export interface BulkAudienceContactTopicsRequest {
+  /** 1–1000 contact ids. */
+  contact_ids: string[];
+  /** 1–50 topic ids. */
+  topic_ids: string[];
+}
+
+export interface BulkSubscribeContactsTopicsData {
+  subscribed: number;
+  already_subscribed: number;
+  total_pairs: number;
+}
+
+export interface BulkUnsubscribeContactsTopicsData {
+  unsubscribed: number;
+  total_pairs: number;
 }
 
 export interface BulkAudienceContactListsRequest {

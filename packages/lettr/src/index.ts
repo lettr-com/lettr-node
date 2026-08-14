@@ -12,6 +12,7 @@ export { AudienceTopics } from "./audience-topics";
 export { AudienceProperties } from "./audience-properties";
 export { AudienceSegments } from "./audience-segments";
 export { Campaigns } from "./campaigns";
+export { isContactAlreadyExistsError } from "./errors";
 export type {
   // Shared
   LettrError,
@@ -116,9 +117,18 @@ export type {
   UpdateAudienceContactRequest,
   BulkCreateAudienceContactsRequest,
   BulkCreateAudienceContactsData,
+  AudienceTopicSubscriptionState,
+  AudienceTopicSubscription,
+  BulkAudienceContactRow,
+  BulkAudienceContactErrorCode,
+  BulkAudienceContactError,
+  BulkAudienceContactRef,
   BulkAudienceContactListsRequest,
   BulkAttachContactsListsData,
   BulkDetachContactsListsData,
+  BulkAudienceContactTopicsRequest,
+  BulkSubscribeContactsTopicsData,
+  BulkUnsubscribeContactsTopicsData,
   AudienceTopic,
   AudienceTopicVisibility,
   AudienceTopicDefaultSubscription,

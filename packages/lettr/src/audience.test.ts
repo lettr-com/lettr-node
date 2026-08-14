@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { Lettr } from "./client";
+import { isContactAlreadyExistsError } from "./errors";
 import type {
   AudienceContact,
   AudienceList,
@@ -307,7 +308,14 @@ describe("Audience.Contacts", () => {
       status: 201,
       json: async () => ({
         message: "Created.",
-        data: { created: 2, already_existed: 0 },
+        data: {
+          created: 2,
+          already_existed: 0,
+          updated: 0,
+          error_count: 0,
+          errors: [],
+          contacts: [],
+        },
       }),
     });
 
@@ -316,9 +324,215 @@ describe("Audience.Contacts", () => {
       emails: ["jane@example.com", "joe@example.com"],
     });
 
-    expect(result.data).toEqual({ created: 2, already_existed: 0 });
+    expect(result.data).toEqual({
+      created: 2,
+      already_existed: 0,
+      updated: 0,
+      error_count: 0,
+      errors: [],
+      contacts: [],
+    });
     const calledUrl = mockFetch.mock.calls[0]![0] as string;
     expect(calledUrl).toBe("https://app.lettr.com/api/audience/contacts/bulk");
+    // The flat shape must go out exactly as before — no `contacts` key, and no
+    // `update_existing` unless the caller asked for it.
+    const body = JSON.parse(mockFetch.mock.calls[0]![1].body as string);
+    expect(body).toEqual({ emails: ["jane@example.com", "joe@example.com"] });
+  });
+
+  it("defaults the TPL-2105 fields when the API omits them", async () => {
+    // An API deployment older than TPL-2105 answers with just the two
+    // counters. Callers should still be able to read `.errors.length`.
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      json: async () => ({
+        message: "Created.",
+        data: { created: 2, already_existed: 1 },
+      }),
+    });
+
+    const client = new Lettr("test-api-key");
+    const result = await client.audience.contacts.bulkCreate({
+      emails: ["jane@example.com", "joe@example.com"],
+    });
+
+    expect(result.data).toEqual({
+      created: 2,
+      already_existed: 1,
+      updated: 0,
+      error_count: 0,
+      errors: [],
+      contacts: [],
+    });
+  });
+
+  it("bulk creates per-contact rows with batch-wide lists and topics", async () => {
+    const responseData = {
+      created: 2,
+      already_existed: 0,
+      updated: 0,
+      error_count: 0,
+      errors: [],
+      contacts: [
+        { id: contactData.id, email: "jane@example.com", created: true },
+        { id: "0193e6b0-aaaa-7d4f-a8f1-cef9a1b2d3e4", email: "joe@example.com", created: true },
+      ],
+    };
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      json: async () => ({ message: "Created.", data: responseData }),
+    });
+
+    const client = new Lettr("test-api-key");
+    const result = await client.audience.contacts.bulkCreate({
+      contacts: [
+        { email: "jane@example.com", properties: { plan: "pro" }, list_ids: [listData.id] },
+        // Row-level opt_out must beat the batch-wide opt_in below.
+        { email: "joe@example.com", topics: [{ id: topicData.id, subscription: "opt_out" }] },
+      ],
+      list_ids: ["0193e6a8-2a4b-7d1c-a3f5-2bb2e3f6e4a1"],
+      topics: [{ id: topicData.id, subscription: "opt_in" }],
+      properties: { source: "spring-campaign" },
+      update_existing: true,
+    });
+
+    expect(result.data).toEqual(responseData);
+    // Ids come back in submission order, so no follow-up lookup is needed.
+    expect(result.data!.contacts.map((c) => c.id)).toEqual([
+      contactData.id,
+      "0193e6b0-aaaa-7d4f-a8f1-cef9a1b2d3e4",
+    ]);
+
+    const body = JSON.parse(mockFetch.mock.calls[0]![1].body as string);
+    expect(body.emails).toBeUndefined();
+    expect(body.contacts).toHaveLength(2);
+    expect(body.contacts[1].topics).toEqual([
+      { id: topicData.id, subscription: "opt_out" },
+    ]);
+    expect(body.list_ids).toEqual(["0193e6a8-2a4b-7d1c-a3f5-2bb2e3f6e4a1"]);
+    expect(body.update_existing).toBe(true);
+  });
+
+  it("reports skipped rows on an otherwise successful bulk create", async () => {
+    // Partial success: HTTP 201 with `errors` populated. `result.error` is null
+    // even though one row never landed — that is the trap this test pins down.
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      json: async () => ({
+        message: "Contacts created successfully.",
+        data: {
+          created: 1,
+          already_existed: 0,
+          updated: 0,
+          error_count: 1,
+          errors: [
+            {
+              index: 1,
+              email: "not-an-email",
+              error_code: "invalid_email",
+              error: "The email address is not valid.",
+            },
+          ],
+          contacts: [{ id: contactData.id, email: "jane@example.com", created: true }],
+        },
+      }),
+    });
+
+    const client = new Lettr("test-api-key");
+    const result = await client.audience.contacts.bulkCreate({
+      contacts: [{ email: "jane@example.com" }, { email: "not-an-email" }],
+    });
+
+    expect(result.error).toBeNull();
+    expect(result.data!.error_count).toBe(1);
+    expect(result.data!.errors[0]!.index).toBe(1);
+    expect(result.data!.errors[0]!.error_code).toBe("invalid_email");
+    expect(result.data!.contacts).toHaveLength(1);
+  });
+
+  it("flags a duplicate create as resource_already_exists", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 409,
+      json: async () => ({
+        message:
+          "A contact with the email jane@example.com already exists. Use PATCH /audience/contacts/{contactId} to update it, or POST /audience/contacts/bulk with update_existing enabled.",
+        error_code: "resource_already_exists",
+      }),
+    });
+
+    const client = new Lettr("test-api-key");
+    const result = await client.audience.contacts.create({
+      email: "jane@example.com",
+    });
+
+    expect(result.data).toBeNull();
+    expect(result.error!.type).toBe("api");
+    // Previously a 500 `send_error`, which a retry-on-5xx policy would retry.
+    expect(isContactAlreadyExistsError(result.error)).toBe(true);
+  });
+
+  it("does not flag other conflicts as an existing contact", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 409,
+      json: async () => ({ message: "Conflict.", error_code: "not_found" }),
+    });
+
+    const client = new Lettr("test-api-key");
+    const result = await client.audience.contacts.create({ email: "jane@example.com" });
+
+    expect(isContactAlreadyExistsError(result.error)).toBe(false);
+  });
+
+  it("bulk subscribes contacts to topics", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        message: "Subscribed.",
+        data: { subscribed: 3, already_subscribed: 1, total_pairs: 4 },
+      }),
+    });
+
+    const client = new Lettr("test-api-key");
+    const result = await client.audience.contacts.bulkSubscribeTopics({
+      contact_ids: [contactData.id, "0193e6b0-aaaa-7d4f-a8f1-cef9a1b2d3e4"],
+      topic_ids: [topicData.id, "0193e6c0-2222-7c2a-b9e2-1aa1d2e5d3f0"],
+    });
+
+    expect(result.data).toEqual({ subscribed: 3, already_subscribed: 1, total_pairs: 4 });
+    const [calledUrl, init] = mockFetch.mock.calls[0]!;
+    expect(calledUrl).toBe(
+      "https://app.lettr.com/api/audience/contacts/topics/bulk"
+    );
+    expect(init.method).toBe("POST");
+  });
+
+  it("bulk unsubscribes contacts from topics with a DELETE body", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        message: "Unsubscribed.",
+        data: { unsubscribed: 2, total_pairs: 4 },
+      }),
+    });
+
+    const client = new Lettr("test-api-key");
+    const result = await client.audience.contacts.bulkUnsubscribeTopics({
+      contact_ids: [contactData.id, "0193e6b0-aaaa-7d4f-a8f1-cef9a1b2d3e4"],
+      topic_ids: [topicData.id, "0193e6c0-2222-7c2a-b9e2-1aa1d2e5d3f0"],
+    });
+
+    expect(result.data).toEqual({ unsubscribed: 2, total_pairs: 4 });
+    const [, init] = mockFetch.mock.calls[0]!;
+    expect(init.method).toBe("DELETE");
+    // The body is the point: DELETE carries the pairs to remove.
+    expect(JSON.parse(init.body as string).topic_ids).toHaveLength(2);
   });
 
   it("updates a contact with PATCH", async () => {
