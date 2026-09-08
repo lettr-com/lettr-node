@@ -5,6 +5,7 @@ export { Domains } from "./domains";
 export { Templates } from "./templates";
 export { Webhooks } from "./webhooks";
 export { Projects } from "./projects";
+export { Folders } from "./folders";
 export { Audience } from "./audience";
 export { AudienceLists } from "./audience-lists";
 export { AudienceContacts } from "./audience-contacts";
@@ -71,6 +72,7 @@ export type {
   SpfValidationResult,
 
   // Templates
+  TemplatePurpose,
   Template,
   TemplateDetail,
   CreateTemplateRequest,
@@ -96,6 +98,11 @@ export type {
   Project,
   ListProjectsParams,
   ListProjectsResponse,
+
+  // Folders
+  Folder,
+  ListFoldersParams,
+  ListFoldersResponse,
 
   // Audience
   AudiencePagination,

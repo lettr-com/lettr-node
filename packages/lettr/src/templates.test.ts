@@ -19,6 +19,7 @@ describe("Templates", () => {
             slug: "welcome-email",
             project_id: 5,
             folder_id: 10,
+            purpose: "transactional" as const,
             created_at: "2025-01-15T10:00:00+00:00",
             updated_at: "2025-01-20T14:30:00+00:00",
           },
@@ -52,6 +53,7 @@ describe("Templates", () => {
         slug: "welcome-email",
         project_id: 5,
         folder_id: 10,
+        purpose: "transactional" as const,
         active_version: 1,
         versions_count: 1,
         html: "<p>Hello {{FIRST_NAME}}</p>",
@@ -101,6 +103,105 @@ describe("Templates", () => {
     });
   });
 
+  describe("purpose", () => {
+    it("sends the purpose on create and reads it back", async () => {
+      const responseData = {
+        id: 124,
+        name: "October Newsletter",
+        slug: "october-newsletter",
+        project_id: 5,
+        folder_id: 11,
+        purpose: "campaign" as const,
+        active_version: 1,
+        merge_tags: [],
+        created_at: "2026-01-28T12:00:00+00:00",
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        json: async () => ({ message: "Template created successfully.", data: responseData }),
+      });
+
+      const client = new Lettr("test-api-key");
+      const result = await client.templates.create({
+        name: "October Newsletter",
+        html: "<p>Hi {{FIRST_NAME}}</p>",
+        folder_id: 11,
+        purpose: "campaign",
+      });
+
+      expect(result.data?.purpose).toBe("campaign");
+
+      const [, init] = mockFetch.mock.calls[0]!;
+      expect(JSON.parse(init.body as string)).toEqual({
+        name: "October Newsletter",
+        html: "<p>Hi {{FIRST_NAME}}</p>",
+        folder_id: 11,
+        purpose: "campaign",
+      });
+    });
+
+    it("sends no purpose key when it is omitted", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        json: async () => ({ message: "Template created successfully.", data: {} }),
+      });
+
+      const client = new Lettr("test-api-key");
+      await client.templates.create({ name: "Welcome Email", html: "<p>Hi</p>" });
+
+      // The compatibility guarantee: a caller that says nothing about modules
+      // sends the exact body it sent before this field existed.
+      const [, init] = mockFetch.mock.calls[0]!;
+      const body = JSON.parse(init.body as string);
+      expect(body).toEqual({ name: "Welcome Email", html: "<p>Hi</p>" });
+      expect("purpose" in body).toBe(false);
+    });
+
+    it("filters the list by purpose", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          message: "Templates retrieved successfully.",
+          data: {
+            templates: [],
+            pagination: { total: 0, per_page: 25, current_page: 1, last_page: 1 },
+          },
+        }),
+      });
+
+      const client = new Lettr("test-api-key");
+      await client.templates.list({ project_id: 5, purpose: "campaign" });
+
+      const calledUrl = mockFetch.mock.calls[0]![0] as string;
+      expect(calledUrl).toContain("purpose=campaign");
+      expect(calledUrl).toContain("project_id=5");
+    });
+
+    it("omits purpose from the query when unset", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          message: "Templates retrieved successfully.",
+          data: {
+            templates: [],
+            pagination: { total: 0, per_page: 25, current_page: 1, last_page: 1 },
+          },
+        }),
+      });
+
+      const client = new Lettr("test-api-key");
+      await client.templates.list({ project_id: 5 });
+
+      const calledUrl = mockFetch.mock.calls[0]![0] as string;
+      expect(calledUrl).not.toContain("purpose");
+    });
+  });
+
   describe("get", () => {
     it("returns template detail", async () => {
       const responseData = {
@@ -109,6 +210,7 @@ describe("Templates", () => {
         slug: "welcome-email",
         project_id: 5,
         folder_id: 10,
+        purpose: "transactional" as const,
         active_version: 2,
         versions_count: 3,
         html: "<p>Welcome!</p>",
@@ -163,6 +265,7 @@ describe("Templates", () => {
         slug: "welcome-email",
         project_id: 5,
         folder_id: 10,
+        purpose: "transactional" as const,
         active_version: 2,
         versions_count: 2,
         html: "<p>Hello {{NAME}}</p>",

@@ -512,12 +512,22 @@ export interface VerifyDomainResponse {
 
 // ---------- Templates ----------
 
+/**
+ * Which module a template belongs to.
+ *
+ * The two do not mix: only `"campaign"` templates can be picked by the campaign
+ * builder, and only `"transactional"` ones can be sent as single emails. A
+ * template is filed into a folder of its own module.
+ */
+export type TemplatePurpose = "transactional" | "campaign";
+
 export interface Template {
   id: number;
   name: string;
   slug: string;
   project_id: number;
   folder_id: number;
+  purpose: TemplatePurpose;
   created_at: string;
   updated_at: string;
 }
@@ -534,9 +544,16 @@ export interface CreateTemplateRequest {
   html?: string;
   json?: string;
   project_id?: number;
+  /** Must belong to the same module as `purpose`. Discover one with `client.folders.list()`. */
   folder_id?: number;
+  /** Omit to let the API decide, which today means `"transactional"`. */
+  purpose?: TemplatePurpose;
 }
 
+/**
+ * Note the absence of `purpose`: `PUT /templates/{slug}` does not accept one, so
+ * a template cannot change module in place. Set it on create.
+ */
 export interface UpdateTemplateRequest {
   name?: string;
   html?: string;
@@ -546,6 +563,8 @@ export interface UpdateTemplateRequest {
 
 export interface ListTemplatesParams {
   project_id?: number;
+  /** Narrow the list to one module. Omit for both. */
+  purpose?: TemplatePurpose;
   per_page?: number;
   page?: number;
 }
@@ -573,6 +592,7 @@ export interface CreateTemplateResponse {
   slug: string;
   project_id: number;
   folder_id: number;
+  purpose: TemplatePurpose;
   active_version: number;
   merge_tags: MergeTag[];
   created_at: string;
@@ -584,6 +604,7 @@ export interface UpdateTemplateResponse {
   slug: string;
   project_id: number;
   folder_id: number;
+  purpose: TemplatePurpose;
   active_version: number;
   merge_tags: MergeTag[];
   created_at: string;
@@ -702,6 +723,44 @@ export interface ListProjectsParams {
 
 export interface ListProjectsResponse {
   projects: Project[];
+  pagination: {
+    total: number;
+    per_page: number;
+    current_page: number;
+    last_page: number;
+  };
+}
+
+// ---------- Folders ----------
+
+/**
+ * A folder templates are filed into.
+ *
+ * `id` is what `CreateTemplateRequest["folder_id"]` expects, so listing folders
+ * is how a caller picks where a template lands without hardcoding an integer
+ * read out of an app URL.
+ */
+export interface Folder {
+  id: number;
+  name: string;
+  project_id: number;
+  purpose: TemplatePurpose;
+  templates_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ListFoldersParams {
+  /** Omit to use the team's default project, as `templates.list()` does. */
+  project_id?: number;
+  /** Narrow the list to one module. Omit for both. */
+  purpose?: TemplatePurpose;
+  per_page?: number;
+  page?: number;
+}
+
+export interface ListFoldersResponse {
+  folders: Folder[];
   pagination: {
     total: number;
     per_page: number;
