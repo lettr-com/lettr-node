@@ -14,6 +14,14 @@ export { AudienceProperties } from "./audience-properties";
 export { AudienceSegments } from "./audience-segments";
 export { Campaigns } from "./campaigns";
 export { isContactAlreadyExistsError } from "./errors";
+export {
+  isIdempotencyConflictError,
+  isIdempotencyInProgressError,
+} from "./errors";
+export {
+  isValidIdempotencyKey,
+  IDEMPOTENCY_KEY_PATTERN,
+} from "./idempotency";
 export type {
   // Shared
   LettrError,
@@ -25,6 +33,7 @@ export type {
   EmailOptions,
   SendEmailRequest,
   SendEmailResponse,
+  SendEmailOptions,
   ScheduleEmailRequest,
   ScheduledTransmission,
   CancelScheduledResponse,
@@ -73,6 +82,7 @@ export type {
 
   // Templates
   TemplatePurpose,
+  TemplatePreparationStatus,
   Template,
   TemplateDetail,
   CreateTemplateRequest,

@@ -6,7 +6,7 @@ Official Node.js SDK and CLI tools for the [Lettr](https://lettr.com) transactio
 
 | Package | Description |
 | --- | --- |
-| [`lettr`](./packages/lettr) | Core SDK — type-safe API client for emails, templates, domains, webhooks, audience, and campaigns |
+| [`lettr`](./packages/lettr) | Core SDK — type-safe API client for emails, templates, folders, domains, webhooks, audience, and campaigns |
 | [`lettr-kit`](./packages/lettr-kit) | CLI tool for managing Lettr email templates locally |
 
 ## Quick Start

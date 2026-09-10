@@ -18,6 +18,8 @@ export type ErrorCode =
   | "daily_quota_exceeded"
   | "campaign_not_sendable"
   | "campaign_not_scheduled"
+  | "idempotency_key_conflict"
+  | "idempotency_in_progress"
   | "unauthorized"
   | "unknown";
 
@@ -51,7 +53,17 @@ export type LettrError =
        */
       error_code?: ErrorCode;
     }
-  | { type: "api"; message: string; error_code: ErrorCode }
+  | {
+      type: "api";
+      message: string;
+      error_code: ErrorCode;
+      /**
+       * Seconds to wait before retrying, from the `Retry-After` header. Present
+       * on `idempotency_in_progress` (retry with the SAME key) and on rate
+       * limits. Absent on errors that must not be retried.
+       */
+      retry_after?: number;
+    }
   | { type: "network"; message: string };
 
 export type Result<T> =
@@ -105,6 +117,26 @@ export interface SendEmailResponse {
   accepted: number;
   rejected: number;
   message: string;
+  /**
+   * True when this response replayed an earlier send under the same
+   * idempotency key — no second email went out. Still a success.
+   */
+  replayed: boolean;
+}
+
+export interface SendEmailOptions {
+  /**
+   * A key identifying one logical send. Reuse it when you retry and the API
+   * returns the original result instead of delivering a second email.
+   *
+   * You choose the key; the SDK never generates one. It only works if both
+   * attempts use the same value, and the SDK does not retry — one `send()` is
+   * one HTTP request — so the retry is yours, and only you know that two calls
+   * are the same logical send.
+   *
+   * 1–255 characters of `[A-Za-z0-9._-]`. Validated before the request.
+   */
+  idempotencyKey?: string;
 }
 
 export type ScheduleEmailRequest = SendEmailRequest & {
@@ -521,6 +553,19 @@ export interface VerifyDomainResponse {
  */
 export type TemplatePurpose = "transactional" | "campaign";
 
+/**
+ * How far a template has got through preparation.
+ *
+ * Creating or updating a template through the API defers image migration and
+ * HTML rendering to a background job. On a create with JSON there is no HTML at
+ * all until it finishes; on an **update** the previous render stays in place, so
+ * the template is still sendable but is serving the *old* content.
+ *
+ * So `"ready"` answers "is what I sent what will go out", which is not the same
+ * question as "can I send this".
+ */
+export type TemplatePreparationStatus = "pending" | "ready" | "failed";
+
 export interface Template {
   id: number;
   name: string;
@@ -528,6 +573,7 @@ export interface Template {
   project_id: number;
   folder_id: number;
   purpose: TemplatePurpose;
+  preparation_status: TemplatePreparationStatus;
   created_at: string;
   updated_at: string;
 }
@@ -563,6 +609,14 @@ export interface UpdateTemplateRequest {
 
 export interface ListTemplatesParams {
   project_id?: number;
+  /**
+   * Narrow the list to one folder of the resolved project. Discover ids with
+   * `client.folders.list()`.
+   *
+   * A folder that is not in that project answers **404**, not an empty list —
+   * so a typo cannot be misread as "nothing is there yet".
+   */
+  folder_id?: number;
   /** Narrow the list to one module. Omit for both. */
   purpose?: TemplatePurpose;
   per_page?: number;
@@ -593,6 +647,7 @@ export interface CreateTemplateResponse {
   project_id: number;
   folder_id: number;
   purpose: TemplatePurpose;
+  preparation_status: TemplatePreparationStatus;
   active_version: number;
   merge_tags: MergeTag[];
   created_at: string;
@@ -605,6 +660,7 @@ export interface UpdateTemplateResponse {
   project_id: number;
   folder_id: number;
   purpose: TemplatePurpose;
+  preparation_status: TemplatePreparationStatus;
   active_version: number;
   merge_tags: MergeTag[];
   created_at: string;
