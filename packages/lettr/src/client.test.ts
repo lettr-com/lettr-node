@@ -16,6 +16,7 @@ describe("Lettr", () => {
     expect(client.templates).toBeDefined();
     expect(client.webhooks).toBeDefined();
     expect(client.projects).toBeDefined();
+    expect(client.folders).toBeDefined();
     expect(client.audience).toBeDefined();
     expect(client.audience.lists).toBeDefined();
     expect(client.audience.contacts).toBeDefined();

@@ -5,6 +5,7 @@ export { Domains } from "./domains";
 export { Templates } from "./templates";
 export { Webhooks } from "./webhooks";
 export { Projects } from "./projects";
+export { Folders } from "./folders";
 export { Audience } from "./audience";
 export { AudienceLists } from "./audience-lists";
 export { AudienceContacts } from "./audience-contacts";
@@ -13,6 +14,14 @@ export { AudienceProperties } from "./audience-properties";
 export { AudienceSegments } from "./audience-segments";
 export { Campaigns } from "./campaigns";
 export { isContactAlreadyExistsError } from "./errors";
+export {
+  isIdempotencyConflictError,
+  isIdempotencyInProgressError,
+} from "./errors";
+export {
+  isValidIdempotencyKey,
+  IDEMPOTENCY_KEY_PATTERN,
+} from "./idempotency";
 export type {
   // Shared
   LettrError,
@@ -24,6 +33,7 @@ export type {
   EmailOptions,
   SendEmailRequest,
   SendEmailResponse,
+  SendEmailOptions,
   ScheduleEmailRequest,
   ScheduledTransmission,
   CancelScheduledResponse,
@@ -71,6 +81,8 @@ export type {
   SpfValidationResult,
 
   // Templates
+  TemplatePurpose,
+  TemplatePreparationStatus,
   Template,
   TemplateDetail,
   CreateTemplateRequest,
@@ -96,6 +108,11 @@ export type {
   Project,
   ListProjectsParams,
   ListProjectsResponse,
+
+  // Folders
+  Folder,
+  ListFoldersParams,
+  ListFoldersResponse,
 
   // Audience
   AudiencePagination,

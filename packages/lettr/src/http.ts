@@ -9,6 +9,15 @@ export interface RequestOptions {
   query?: Record<string, string | number | undefined>;
   /** When false, returns the full response body as T instead of unwrapping body.data */
   unwrap?: boolean;
+  /** Extra request headers, merged over the defaults. */
+  headers?: Record<string, string>;
+  /**
+   * Called with the response headers before the body is interpreted.
+   *
+   * A callback rather than state on the client, so concurrent requests cannot
+   * read each other's headers.
+   */
+  onResponseHeaders?: (headers: Headers) => void;
 }
 
 interface ApiValidationError {
@@ -57,6 +66,7 @@ export class HttpClient {
       "User-Agent": this.userAgent
         ? `lettr-node/${VERSION} ${this.userAgent}`
         : `lettr-node/${VERSION}`,
+      ...options?.headers,
     };
 
     const init: RequestInit = { method, headers };
@@ -75,6 +85,11 @@ export class HttpClient {
         error: { type: "network", message: "Failed to connect to Lettr API" },
       };
     }
+
+    // `headers` is guaranteed by the fetch spec, but a mocked or polyfilled
+    // fetch can omit it - and a missing header should mean "no replay info",
+    // not a crashed send.
+    if (response.headers) options?.onResponseHeaders?.(response.headers);
 
     if (response.status === 204) {
       return { data: undefined as T, error: null };
@@ -138,10 +153,17 @@ export class HttpClient {
     }
 
     const errorBody = body as ApiError;
+    // `Retry-After` distinguishes the retryable failures from the permanent
+    // ones. `idempotency_in_progress` carries it and must be retried with the
+    // SAME key; `idempotency_key_conflict` does not, and never will succeed.
+    const retryAfter = Number(response.headers?.get("Retry-After"));
     const error: LettrError = {
       type: "api",
       message: errorBody.message ?? "Request failed",
       error_code: errorBody.error_code ?? "unknown",
+      ...(Number.isFinite(retryAfter) && retryAfter > 0
+        ? { retry_after: retryAfter }
+        : {}),
     };
     return { data: null, error };
   }

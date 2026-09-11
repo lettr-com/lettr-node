@@ -28,3 +28,50 @@ export function isContactAlreadyExistsError(
     error.error_code === "resource_already_exists"
   );
 }
+
+/**
+ * Whether an error is "this key was already used with a different payload"
+ * (HTTP 409, `idempotency_key_conflict`).
+ *
+ * **Never retry this.** Two different emails were sent under one key, which is
+ * a bug on the caller's side; the same request will fail identically forever.
+ * Use a key that is unique per logical send, or send the payload the key was
+ * first used with.
+ */
+export function isIdempotencyConflictError(
+  error: LettrError | null | undefined
+): boolean {
+  return (
+    error !== null &&
+    error !== undefined &&
+    error.type === "api" &&
+    error.error_code === "idempotency_key_conflict"
+  );
+}
+
+/**
+ * Whether an error is "the original send is still processing" (HTTP 409,
+ * `idempotency_in_progress`).
+ *
+ * This one **is** retryable, and must be retried with the *same* key — a fresh
+ * key would send a second email. Wait `error.retry_after` seconds first.
+ *
+ * ```ts
+ * const { data, error } = await client.emails.send(email, { idempotencyKey: key });
+ *
+ * if (isIdempotencyInProgressError(error)) {
+ *   await sleep((error.retry_after ?? 1) * 1000);
+ *   // retry with the SAME key
+ * }
+ * ```
+ */
+export function isIdempotencyInProgressError(
+  error: LettrError | null | undefined
+): boolean {
+  return (
+    error !== null &&
+    error !== undefined &&
+    error.type === "api" &&
+    error.error_code === "idempotency_in_progress"
+  );
+}

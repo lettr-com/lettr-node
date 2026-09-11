@@ -4,6 +4,7 @@ import { Domains } from "./domains";
 import { Templates } from "./templates";
 import { Webhooks } from "./webhooks";
 import { Projects } from "./projects";
+import { Folders } from "./folders";
 import { Audience } from "./audience";
 import { Campaigns } from "./campaigns";
 import type { HealthResponse, AuthCheckResponse, Result } from "./types";
@@ -21,6 +22,7 @@ export class Lettr {
   public readonly templates: Templates;
   public readonly webhooks: Webhooks;
   public readonly projects: Projects;
+  public readonly folders: Folders;
   public readonly audience: Audience;
   public readonly campaigns: Campaigns;
 
@@ -33,6 +35,7 @@ export class Lettr {
     this.templates = new Templates(this.http);
     this.webhooks = new Webhooks(this.http);
     this.projects = new Projects(this.http);
+    this.folders = new Folders(this.http);
     this.audience = new Audience(this.http);
     this.campaigns = new Campaigns(this.http);
   }

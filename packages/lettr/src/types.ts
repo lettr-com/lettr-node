@@ -18,6 +18,8 @@ export type ErrorCode =
   | "daily_quota_exceeded"
   | "campaign_not_sendable"
   | "campaign_not_scheduled"
+  | "idempotency_key_conflict"
+  | "idempotency_in_progress"
   | "unauthorized"
   | "unknown";
 
@@ -51,7 +53,17 @@ export type LettrError =
        */
       error_code?: ErrorCode;
     }
-  | { type: "api"; message: string; error_code: ErrorCode }
+  | {
+      type: "api";
+      message: string;
+      error_code: ErrorCode;
+      /**
+       * Seconds to wait before retrying, from the `Retry-After` header. Present
+       * on `idempotency_in_progress` (retry with the SAME key) and on rate
+       * limits. Absent on errors that must not be retried.
+       */
+      retry_after?: number;
+    }
   | { type: "network"; message: string };
 
 export type Result<T> =
@@ -105,6 +117,26 @@ export interface SendEmailResponse {
   accepted: number;
   rejected: number;
   message: string;
+  /**
+   * True when this response replayed an earlier send under the same
+   * idempotency key — no second email went out. Still a success.
+   */
+  replayed: boolean;
+}
+
+export interface SendEmailOptions {
+  /**
+   * A key identifying one logical send. Reuse it when you retry and the API
+   * returns the original result instead of delivering a second email.
+   *
+   * You choose the key; the SDK never generates one. It only works if both
+   * attempts use the same value, and the SDK does not retry — one `send()` is
+   * one HTTP request — so the retry is yours, and only you know that two calls
+   * are the same logical send.
+   *
+   * 1–255 characters of `[A-Za-z0-9._-]`. Validated before the request.
+   */
+  idempotencyKey?: string;
 }
 
 export type ScheduleEmailRequest = SendEmailRequest & {
@@ -512,12 +544,36 @@ export interface VerifyDomainResponse {
 
 // ---------- Templates ----------
 
+/**
+ * Which module a template belongs to.
+ *
+ * The two do not mix: only `"campaign"` templates can be picked by the campaign
+ * builder, and only `"transactional"` ones can be sent as single emails. A
+ * template is filed into a folder of its own module.
+ */
+export type TemplatePurpose = "transactional" | "campaign";
+
+/**
+ * How far a template has got through preparation.
+ *
+ * Creating or updating a template through the API defers image migration and
+ * HTML rendering to a background job. On a create with JSON there is no HTML at
+ * all until it finishes; on an **update** the previous render stays in place, so
+ * the template is still sendable but is serving the *old* content.
+ *
+ * So `"ready"` answers "is what I sent what will go out", which is not the same
+ * question as "can I send this".
+ */
+export type TemplatePreparationStatus = "pending" | "ready" | "failed";
+
 export interface Template {
   id: number;
   name: string;
   slug: string;
   project_id: number;
   folder_id: number;
+  purpose: TemplatePurpose;
+  preparation_status: TemplatePreparationStatus;
   created_at: string;
   updated_at: string;
 }
@@ -534,9 +590,16 @@ export interface CreateTemplateRequest {
   html?: string;
   json?: string;
   project_id?: number;
+  /** Must belong to the same module as `purpose`. Discover one with `client.folders.list()`. */
   folder_id?: number;
+  /** Omit to let the API decide, which today means `"transactional"`. */
+  purpose?: TemplatePurpose;
 }
 
+/**
+ * Note the absence of `purpose`: `PUT /templates/{slug}` does not accept one, so
+ * a template cannot change module in place. Set it on create.
+ */
 export interface UpdateTemplateRequest {
   name?: string;
   html?: string;
@@ -546,6 +609,16 @@ export interface UpdateTemplateRequest {
 
 export interface ListTemplatesParams {
   project_id?: number;
+  /**
+   * Narrow the list to one folder of the resolved project. Discover ids with
+   * `client.folders.list()`.
+   *
+   * A folder that is not in that project answers **404**, not an empty list —
+   * so a typo cannot be misread as "nothing is there yet".
+   */
+  folder_id?: number;
+  /** Narrow the list to one module. Omit for both. */
+  purpose?: TemplatePurpose;
   per_page?: number;
   page?: number;
 }
@@ -573,6 +646,8 @@ export interface CreateTemplateResponse {
   slug: string;
   project_id: number;
   folder_id: number;
+  purpose: TemplatePurpose;
+  preparation_status: TemplatePreparationStatus;
   active_version: number;
   merge_tags: MergeTag[];
   created_at: string;
@@ -584,6 +659,8 @@ export interface UpdateTemplateResponse {
   slug: string;
   project_id: number;
   folder_id: number;
+  purpose: TemplatePurpose;
+  preparation_status: TemplatePreparationStatus;
   active_version: number;
   merge_tags: MergeTag[];
   created_at: string;
@@ -702,6 +779,44 @@ export interface ListProjectsParams {
 
 export interface ListProjectsResponse {
   projects: Project[];
+  pagination: {
+    total: number;
+    per_page: number;
+    current_page: number;
+    last_page: number;
+  };
+}
+
+// ---------- Folders ----------
+
+/**
+ * A folder templates are filed into.
+ *
+ * `id` is what `CreateTemplateRequest["folder_id"]` expects, so listing folders
+ * is how a caller picks where a template lands without hardcoding an integer
+ * read out of an app URL.
+ */
+export interface Folder {
+  id: number;
+  name: string;
+  project_id: number;
+  purpose: TemplatePurpose;
+  templates_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ListFoldersParams {
+  /** Omit to use the team's default project, as `templates.list()` does. */
+  project_id?: number;
+  /** Narrow the list to one module. Omit for both. */
+  purpose?: TemplatePurpose;
+  per_page?: number;
+  page?: number;
+}
+
+export interface ListFoldersResponse {
+  folders: Folder[];
   pagination: {
     total: number;
     per_page: number;

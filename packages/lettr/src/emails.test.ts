@@ -43,6 +43,7 @@ describe("Emails", () => {
         accepted: 1,
         rejected: 0,
         message: "Email queued for delivery.",
+        replayed: false,
       });
       expect(result.error).toBeNull();
     });
@@ -251,6 +252,7 @@ describe("Emails", () => {
         accepted: 3,
         rejected: 1,
         message: "Email queued for delivery.",
+        replayed: false,
       });
       expect(result.error).toBeNull();
 
@@ -421,6 +423,7 @@ describe("Emails", () => {
         accepted: 1,
         rejected: 0,
         message: "Email scheduled for delivery.",
+      replayed: false,
       });
       expect(result.error).toBeNull();
 
