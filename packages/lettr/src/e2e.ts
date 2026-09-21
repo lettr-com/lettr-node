@@ -85,7 +85,7 @@ describe.skipIf(!API_KEY)("e2e", () => {
   // ─── Scheduled Emails ──────────────────────────────────────────
 
   describe("scheduled emails", () => {
-    let scheduledTransmissionId: string;
+    let scheduledRequestId: string;
 
     test("schedule()", async () => {
       const scheduledAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
@@ -99,22 +99,59 @@ describe.skipIf(!API_KEY)("e2e", () => {
       expect(error).toBeNull();
       expect(data).not.toBeNull();
       expect(data!.request_id).toBeString();
-      scheduledTransmissionId = data!.request_id;
+      expect(data!.state).toBe("scheduled");
+      // The provider only receives the email when it comes due, so there is
+      // no provider id yet — and that is the id webhooks will carry.
+      expect(data!.transmission_id).toBeNull();
+      expect(data!.accepted).toBeNumber();
+      scheduledRequestId = data!.request_id;
     });
 
     test("getScheduled()", async () => {
-      if (!scheduledTransmissionId) return;
-      const { data, error } = await client.emails.getScheduled(scheduledTransmissionId);
+      if (!scheduledRequestId) return;
+      const { data, error } = await client.emails.getScheduled(scheduledRequestId);
       expect(error).toBeNull();
       expect(data).not.toBeNull();
-      expect(data!.transmission_id).toBeString();
+      expect(data!.request_id).toBe(scheduledRequestId);
       expect(data!.state).toBeString();
       expect(data!.from).toBeString();
+      expect(Array.isArray(data!.recipients)).toBe(true);
+    });
+
+    test("listScheduled()", async () => {
+      const { data, error } = await client.emails.listScheduled({
+        status: "scheduled",
+        per_page: 5,
+      });
+      expect(error).toBeNull();
+      expect(data).not.toBeNull();
+      expect(Array.isArray(data!.scheduled_emails)).toBe(true);
+      expect(data!.pagination.total).toBeNumber();
+      expect(data!.pagination.per_page).toBeNumber();
+      expect(data!.pagination.current_page).toBeNumber();
+      expect(data!.pagination.last_page).toBeNumber();
+      for (const email of data!.scheduled_emails) {
+        expect(email.request_id).toBeString();
+        expect(email.state).toBe("scheduled");
+      }
+    });
+
+    test("cancelScheduled()", async () => {
+      if (!scheduledRequestId) return;
+      const { data, error } = await client.emails.cancelScheduled(scheduledRequestId);
+      expect(error).toBeNull();
+      expect(data).not.toBeNull();
+      expect(data!.request_id).toBe(scheduledRequestId);
+      expect(data!.state).toBe("cancelled");
+      expect(data!.accepted).toBe(0);
+      scheduledRequestId = "";
     });
 
     afterAll(async () => {
-      if (scheduledTransmissionId) {
-        await client.emails.cancelScheduled(scheduledTransmissionId);
+      // Only fires if cancelScheduled() never ran: nothing this suite
+      // scheduled should be left to actually go out.
+      if (scheduledRequestId) {
+        await client.emails.cancelScheduled(scheduledRequestId);
       }
     });
   });
