@@ -140,13 +140,112 @@ export interface SendEmailOptions {
 }
 
 export type ScheduleEmailRequest = SendEmailRequest & {
+  /** ISO 8601, between 5 minutes and 30 days from now. */
   scheduled_at: string;
 };
 
-export type ScheduledTransmission = GetEmailResponse;
+export type ScheduledEmailState =
+  | "scheduled"
+  | "sending"
+  | "sent"
+  | "cancelled"
+  | "failed"
+  /**
+   * The states below are the sending provider's, not Lettr's. Reading back a
+   * legacy provider transmission id is answered from delivery events, which
+   * report the provider's vocabulary — so these arrive on that path only, and
+   * never on a `sch_` id.
+   */
+  | "submitted"
+  | "generating"
+  | "delivered"
+  | "bounced"
+  | "unknown";
 
+/**
+ * The states a `sch_` scheduled email can be in — the five Lettr owns.
+ *
+ * This is what `listScheduled({ status })` filters on; the provider states in
+ * {@link ScheduledEmailState} are not valid filter values and the API rejects
+ * them with a 422.
+ */
+export type ScheduledEmailStatusFilter =
+  | "scheduled"
+  | "sending"
+  | "sent"
+  | "cancelled"
+  | "failed";
+
+/**
+ * A scheduled email as Lettr holds it, from the moment it is accepted until
+ * long after it went out.
+ *
+ * Two ids, and they are not interchangeable:
+ *
+ * - `request_id` (`sch_…`) is Lettr's own id and the only one that addresses
+ *   the email — pass it to `getScheduled()` and `cancelScheduled()`. It exists
+ *   the instant the email is accepted.
+ * - `transmission_id` is the delivery provider's id. It is `null` until the
+ *   email is actually handed to the provider, and it is the id carried by
+ *   **webhook events**, so it is what you correlate incoming webhooks with.
+ *
+ * Reading a *pre-rework* SparkPost transmission id still works, and the API
+ * answers it from delivery events in an older, thinner shape: no `request_id`
+ * (the SDK fills it in from `transmission_id`, so the field is always
+ * populated) and no `accepted`, `rejected`, `tag` or `failure_reason` — those
+ * four are typed as always present because every email scheduled since the
+ * rework carries them.
+ */
+export interface ScheduledEmail {
+  /** Lettr's own id, `sch_…`. The id that addresses this email. */
+  request_id: string;
+  /** The provider's id, and the one webhook events carry. `null` until sent. */
+  transmission_id: string | null;
+  state: ScheduledEmailState;
+  scheduled_at: string | null;
+  from: string;
+  from_name: string | null;
+  subject: string | null;
+  recipients: string[];
+  num_recipients: number;
+  /** Recipients the API took responsibility for. Drops to 0 once cancelled. */
+  accepted: number;
+  rejected: number;
+  tag: string | null;
+  /** Why the send failed. Populated when `state` is `"failed"`. */
+  failure_reason: string | null;
+  events: EmailEvent[];
+}
+
+/** @deprecated Renamed to `ScheduledEmail`. */
+export type ScheduledTransmission = ScheduledEmail;
+
+/**
+ * @deprecated `cancelScheduled()` now resolves to the cancelled
+ * `ScheduledEmail` rather than a bare message.
+ */
 export interface CancelScheduledResponse {
   message: string;
+}
+
+export interface ScheduledEmailPagination {
+  total: number;
+  per_page: number;
+  current_page: number;
+  last_page: number;
+}
+
+export interface ListScheduledEmailsParams {
+  status?: ScheduledEmailStatusFilter;
+  /** 1–100. Defaults to 25. */
+  per_page?: number;
+  /** 1-based. */
+  page?: number;
+}
+
+export interface ListScheduledEmailsResponse {
+  scheduled_emails: ScheduledEmail[];
+  pagination: ScheduledEmailPagination;
 }
 
 // ---------- Sent Emails (GET /emails) ----------

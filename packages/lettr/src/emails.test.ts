@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { Lettr } from "./client";
-import type { SendEmailRequest, ListEmailsResponse, GetEmailResponse } from "./types";
+import type {
+  SendEmailRequest,
+  ListEmailsResponse,
+  GetEmailResponse,
+  ScheduledEmail,
+  ScheduledEmailState,
+  ListScheduledEmailsResponse,
+} from "./types";
 import pkg from "../package.json";
 
 const USER_AGENT = `lettr-node/${pkg.version}`;
@@ -13,6 +20,24 @@ const validRequest: SendEmailRequest = {
   to: ["recipient@example.com"],
   subject: "Test Email",
   html: "<p>Hello</p>",
+};
+
+/** A scheduled email exactly as the API sends it, still waiting to go out. */
+const scheduledEmail: ScheduledEmail = {
+  request_id: "sch_01M322YMWVCZ4RNYXHMSSMDTM1",
+  transmission_id: null,
+  state: "scheduled",
+  scheduled_at: "2026-04-01T10:00:00Z",
+  from: "sender@example.com",
+  from_name: null,
+  subject: "Test Email",
+  recipients: ["recipient@example.com"],
+  num_recipients: 1,
+  accepted: 1,
+  rejected: 0,
+  tag: null,
+  failure_reason: null,
+  events: [],
 };
 
 describe("Emails", () => {
@@ -404,11 +429,7 @@ describe("Emails", () => {
         status: 201,
         json: async () => ({
           message: "Email scheduled for delivery.",
-          data: {
-            request_id: "sched123",
-            accepted: 1,
-            rejected: 0,
-          },
+          data: scheduledEmail,
         }),
       });
 
@@ -418,13 +439,7 @@ describe("Emails", () => {
         scheduled_at: "2026-04-01T10:00:00Z",
       });
 
-      expect(result.data).toEqual({
-        request_id: "sched123",
-        accepted: 1,
-        rejected: 0,
-        message: "Email scheduled for delivery.",
-      replayed: false,
-      });
+      expect(result.data).toEqual(scheduledEmail);
       expect(result.error).toBeNull();
 
       const calledUrl = mockFetch.mock.calls[0]![0] as string;
@@ -432,6 +447,60 @@ describe("Emails", () => {
 
       const body = JSON.parse(mockFetch.mock.calls[0]![1]!.body as string);
       expect(body.scheduled_at).toBe("2026-04-01T10:00:00Z");
+    });
+
+    it("has no provider id until the email is sent", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        json: async () => ({
+          message: "Email scheduled for delivery.",
+          data: scheduledEmail,
+        }),
+      });
+
+      const client = new Lettr("test-api-key");
+      const result = await client.emails.schedule({
+        ...validRequest,
+        scheduled_at: "2026-04-01T10:00:00Z",
+      });
+
+      expect(result.data!.request_id).toBe("sch_01M322YMWVCZ4RNYXHMSSMDTM1");
+      expect(result.data!.transmission_id).toBeNull();
+    });
+
+    it("returns validation error when outside the 30 day window", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 422,
+        json: async () => ({
+          message: "Validation failed.",
+          error_code: "validation_error",
+          errors: {
+            scheduled_at: [
+              "The scheduled delivery time must be within the next 30 days.",
+            ],
+          },
+        }),
+      });
+
+      const client = new Lettr("test-api-key");
+      const result = await client.emails.schedule({
+        ...validRequest,
+        scheduled_at: "2030-01-01T00:00:00Z",
+      });
+
+      expect(result.data).toBeNull();
+      expect(result.error).toEqual({
+        type: "validation",
+        message: "Validation failed.",
+        error_code: "validation_error",
+        errors: {
+          scheduled_at: [
+            "The scheduled delivery time must be within the next 30 days.",
+          ],
+        },
+      });
     });
 
     it("returns validation error on 422", async () => {
@@ -464,10 +533,89 @@ describe("Emails", () => {
   });
 
   describe("getScheduled", () => {
-    it("returns scheduled transmission details", async () => {
-      const responseData = {
-        transmission_id: "sched123",
-        state: "submitted",
+    it("returns scheduled email details", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          message: "Scheduled transmission retrieved successfully.",
+          data: scheduledEmail,
+        }),
+      });
+
+      const client = new Lettr("test-api-key");
+      const result = await client.emails.getScheduled(scheduledEmail.request_id);
+
+      expect(result.data).toEqual(scheduledEmail);
+      expect(result.error).toBeNull();
+
+      const calledUrl = mockFetch.mock.calls[0]![0] as string;
+      expect(calledUrl).toBe(
+        `https://app.lettr.com/api/emails/scheduled/${scheduledEmail.request_id}`
+      );
+    });
+
+    it("exposes the provider id once the email has been sent", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          message: "Scheduled transmission retrieved successfully.",
+          data: {
+            ...scheduledEmail,
+            state: "sent",
+            transmission_id: "7627617400912907437",
+          },
+        }),
+      });
+
+      const client = new Lettr("test-api-key");
+      const result = await client.emails.getScheduled(scheduledEmail.request_id);
+
+      expect(result.data!.request_id).toBe(scheduledEmail.request_id);
+      // The webhook-facing id — the one delivery events are keyed by.
+      expect(result.data!.transmission_id).toBe("7627617400912907437");
+    });
+
+    it("returns every scheduling state as sent", async () => {
+      const client = new Lettr("test-api-key");
+
+      const states: ScheduledEmailState[] = [
+        "scheduled",
+        "sending",
+        "sent",
+        "cancelled",
+        "failed",
+      ];
+
+      for (const state of states) {
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            message: "Scheduled transmission retrieved successfully.",
+            data: {
+              ...scheduledEmail,
+              state,
+              failure_reason: state === "failed" ? "Domain not verified." : null,
+            },
+          }),
+        });
+
+        const result = await client.emails.getScheduled(
+          scheduledEmail.request_id
+        );
+
+        expect(result.data!.state).toBe(state);
+      }
+    });
+
+    it("falls back to transmission_id when the legacy shape omits request_id", async () => {
+      // An id handed out before Lettr owned the schedule is answered from
+      // delivery events: no request_id, and none of the counters.
+      const legacyShape = {
+        transmission_id: "7627617400912907437",
+        state: "sent",
         scheduled_at: "2026-04-01T10:00:00+00:00",
         from: "sender@example.com",
         from_name: "Sender Name",
@@ -480,17 +628,26 @@ describe("Emails", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: async () => ({ message: "Scheduled transmission retrieved.", data: responseData }),
+        json: async () => ({
+          message: "Scheduled transmission retrieved successfully.",
+          data: legacyShape,
+        }),
       });
 
       const client = new Lettr("test-api-key");
-      const result = await client.emails.getScheduled("sched123");
+      const result = await client.emails.getScheduled("7627617400912907437");
 
-      expect(result.data).toEqual(responseData);
       expect(result.error).toBeNull();
-
-      const calledUrl = mockFetch.mock.calls[0]![0] as string;
-      expect(calledUrl).toBe("https://app.lettr.com/api/emails/scheduled/sched123");
+      // The provider id is the only id this email has, so it becomes the one
+      // callers address it by.
+      expect(result.data!.request_id).toBe("7627617400912907437");
+      expect(result.data!.transmission_id).toBe("7627617400912907437");
+      expect(result.data!.state).toBe("sent");
+      expect(result.data!.subject).toBe("Scheduled Email");
+      // Genuinely absent on this path — the counters only exist for emails
+      // Lettr scheduled itself.
+      expect(result.data!.accepted).toBeUndefined();
+      expect(result.data!.tag).toBeUndefined();
     });
 
     it("returns error on 404", async () => {
@@ -516,21 +673,34 @@ describe("Emails", () => {
   });
 
   describe("cancelScheduled", () => {
-    it("cancels a scheduled email", async () => {
+    it("returns the cancelled email", async () => {
+      const cancelled: ScheduledEmail = {
+        ...scheduledEmail,
+        state: "cancelled",
+        accepted: 0,
+      };
+
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: async () => ({ message: "Scheduled transmission cancelled successfully." }),
+        json: async () => ({
+          message: "Scheduled transmission cancelled successfully.",
+          data: cancelled,
+        }),
       });
 
       const client = new Lettr("test-api-key");
-      const result = await client.emails.cancelScheduled("sched123");
+      const result = await client.emails.cancelScheduled(
+        scheduledEmail.request_id
+      );
 
-      expect(result.data).toEqual({ message: "Scheduled transmission cancelled successfully." });
+      expect(result.data).toEqual(cancelled);
       expect(result.error).toBeNull();
 
       const calledUrl = mockFetch.mock.calls[0]![0] as string;
-      expect(calledUrl).toBe("https://app.lettr.com/api/emails/scheduled/sched123");
+      expect(calledUrl).toBe(
+        `https://app.lettr.com/api/emails/scheduled/${scheduledEmail.request_id}`
+      );
 
       const [, init] = mockFetch.mock.calls[0]!;
       expect(init.method).toBe("DELETE");
@@ -554,6 +724,144 @@ describe("Emails", () => {
         type: "api",
         message: "Scheduled transmission not found.",
         error_code: "not_found",
+      });
+    });
+
+    it("returns error when the email was already cancelled", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 409,
+        json: async () => ({
+          message: "This email was already cancelled.",
+          error_code: "schedule_cancellation_failed",
+        }),
+      });
+
+      const client = new Lettr("test-api-key");
+      const result = await client.emails.cancelScheduled(
+        scheduledEmail.request_id
+      );
+
+      expect(result.data).toBeNull();
+      expect(result.error).toEqual({
+        type: "api",
+        message: "This email was already cancelled.",
+        error_code: "schedule_cancellation_failed",
+      });
+    });
+  });
+
+  describe("listScheduled", () => {
+    it("returns a page of scheduled emails", async () => {
+      const responseData: ListScheduledEmailsResponse = {
+        scheduled_emails: [
+          scheduledEmail,
+          {
+            ...scheduledEmail,
+            request_id: "sch_02",
+            state: "cancelled",
+            accepted: 0,
+          },
+        ],
+        pagination: { total: 2, per_page: 25, current_page: 1, last_page: 1 },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          message: "Scheduled emails retrieved successfully.",
+          data: responseData,
+        }),
+      });
+
+      const client = new Lettr("test-api-key");
+      const result = await client.emails.listScheduled();
+
+      expect(result.data).toEqual(responseData);
+      expect(result.error).toBeNull();
+
+      const calledUrl = mockFetch.mock.calls[0]![0] as string;
+      expect(calledUrl).toBe("https://app.lettr.com/api/emails/scheduled");
+    });
+
+    it("passes status, per_page and page as query params", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          message: "Scheduled emails retrieved successfully.",
+          data: {
+            scheduled_emails: [],
+            pagination: { total: 0, per_page: 50, current_page: 2, last_page: 0 },
+          },
+        }),
+      });
+
+      const client = new Lettr("test-api-key");
+      await client.emails.listScheduled({
+        status: "scheduled",
+        per_page: 50,
+        page: 2,
+      });
+
+      const calledUrl = mockFetch.mock.calls[0]![0] as string;
+      expect(calledUrl).toBe(
+        "https://app.lettr.com/api/emails/scheduled?status=scheduled&per_page=50&page=2"
+      );
+    });
+
+    it("fills in request_id for any listed email that lacks one", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          message: "Scheduled emails retrieved successfully.",
+          data: {
+            scheduled_emails: [
+              { ...scheduledEmail, request_id: undefined, transmission_id: "76276174009" },
+            ],
+            pagination: { total: 1, per_page: 25, current_page: 1, last_page: 1 },
+          },
+        }),
+      });
+
+      const client = new Lettr("test-api-key");
+      const result = await client.emails.listScheduled();
+
+      expect(result.data!.scheduled_emails[0]!.request_id).toBe("76276174009");
+    });
+
+    it("returns validation error on an unknown status", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 422,
+        json: async () => ({
+          message: "Validation failed.",
+          error_code: "validation_error",
+          errors: {
+            status: [
+              "The status must be one of scheduled, sending, sent, cancelled or failed.",
+            ],
+          },
+        }),
+      });
+
+      const client = new Lettr("test-api-key");
+      const result = await client.emails.listScheduled({
+        status: "bogus" as never,
+      });
+
+      expect(result.data).toBeNull();
+      expect(result.error).toEqual({
+        type: "validation",
+        message: "Validation failed.",
+        error_code: "validation_error",
+        errors: {
+          status: [
+            "The status must be one of scheduled, sending, sent, cancelled or failed.",
+          ],
+        },
       });
     });
   });
